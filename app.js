@@ -34,11 +34,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     /**
      * Saves the current application state to local storage.
-     * Uses keys with '_v2_4' for this version.
+     * Uses keys with '_v2_5' for this version.
      */
     function saveState() {
-        localStorage.setItem('budgetSlices_v2_4', JSON.stringify(slices));
-        localStorage.setItem('totalBudget_v2_4', totalBudget.toString());
+        localStorage.setItem('budgetSlices_v2_5', JSON.stringify(slices));
+        localStorage.setItem('totalBudget_v2_5', totalBudget.toString());
     }
 
     /**
@@ -46,13 +46,13 @@ document.addEventListener('DOMContentLoaded', () => {
      * Includes data sanitization for robustness.
      */
     function loadState() {
-        const savedTotalBudget = localStorage.getItem('totalBudget_v2_4');
+        const savedTotalBudget = localStorage.getItem('totalBudget_v2_5');
         if (savedTotalBudget) {
             totalBudget = parseFloat(savedTotalBudget);
             totalBudgetInput.value = totalBudget;
         }
 
-        const savedSlices = localStorage.getItem('budgetSlices_v2_4');
+        const savedSlices = localStorage.getItem('budgetSlices_v2_5');
         if (savedSlices) {
             try {
                 let parsedSlices = JSON.parse(savedSlices);
@@ -136,7 +136,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 let newPercentage = (newAmount / totalBudget) * 100;
                 slice.percentage = parseFloat(Math.max(0, newPercentage).toFixed(2));
             } else {
-                slice.percentage = (newAmount > 0 && totalBudget <= 0) ? 0 : 0; // If budget is 0, amount only makes sense as 0%
+                slice.percentage = (newAmount > 0 && totalBudget <= 0) ? 0 : 0;
                 if (newAmount > 0 && totalBudget <= 0) console.warn("Orçamento total é 0. Não é possível calcular a porcentagem da fatia com base no valor.");
             }
             normalizePercentages(); renderApp();
@@ -147,7 +147,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateTotalBudget() {
         const newTotal = parseFloat(totalBudgetInput.value);
         totalBudget = (!isNaN(newTotal) && newTotal >= 0) ? newTotal : totalBudget;
-        if (isNaN(newTotal) || newTotal < 0) totalBudgetInput.value = totalBudget; // Revert if invalid
+        if (isNaN(newTotal) || newTotal < 0) totalBudgetInput.value = totalBudget;
         normalizePercentages(); renderApp();
     }
 
@@ -166,7 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
             currentTotalPercentage = slices.reduce((sum, s) => sum + s.percentage, 0);
         }
 
-        if (currentTotalPercentage > 99.99 && Math.abs(100 - currentTotalPercentage) > 0.001) { // Check if scaled to 100
+        if (currentTotalPercentage > 99.99 && Math.abs(100 - currentTotalPercentage) > 0.001) {
             let diffTo100 = 100 - currentTotalPercentage;
             if (slices.length > 0) {
                 slices.sort((a, b) => b.percentage - a.percentage);
@@ -213,7 +213,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 sliceDiv.appendChild(resizeHandle);
                 resizeHandle.addEventListener('mousedown', onMouseDownOnResizeHandle);
             }
-            if (index === slices.length - 1 && slices.length > 0) { // Handle for the last *actual* slice
+            if (index === slices.length - 1 && slices.length > 0) {
                 const lastResizeHandle = document.createElement('div');
                 lastResizeHandle.className = 'resize-handle last-slice-resize-handle';
                 lastResizeHandle.dataset.sliceIndex = index;
@@ -230,12 +230,10 @@ document.addEventListener('DOMContentLoaded', () => {
             unallocatedSliceDiv.style.flexBasis = `${unallocatedPercentage.toFixed(2)}%`;
             const captionDiv = document.createElement('div');
             captionDiv.className = 'slice-caption';
-            captionDiv.textContent = `Não Alocado: ${unallocatedPercentage.toFixed(1)}%`; // Display with 1 decimal for space
+            captionDiv.textContent = `Não Alocado: ${unallocatedPercentage.toFixed(1)}%`;
             unallocatedSliceDiv.appendChild(captionDiv);
             budgetSlider.appendChild(unallocatedSliceDiv);
         }
-         // Ensure the last *visual element* in the slider (could be an actual slice or the unallocated one)
-         // does not have a right border, to prevent double bordering or border on the very end.
         const allVisualSlices = budgetSlider.children;
         if (allVisualSlices.length > 0) {
             for(let i=0; i < allVisualSlices.length -1; i++){
@@ -245,7 +243,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             allVisualSlices[allVisualSlices.length-1].style.borderRight = 'none';
             if(allVisualSlices[allVisualSlices.length-1].classList.contains('unallocated-slice') && allVisualSlices.length > 1){
-                 allVisualSlices[allVisualSlices.length-2].style.borderRight = '1px solid rgba(255, 255, 255, 0.8)'; // ensure actual last slice has border if unallocated follows
+                 allVisualSlices[allVisualSlices.length-2].style.borderRight = '1px solid rgba(255, 255, 255, 0.8)';
             }
         }
     }
@@ -286,20 +284,22 @@ document.addEventListener('DOMContentLoaded', () => {
             actionsCell.appendChild(deleteBtn);
         });
 
-        const currentTotalAllocated = slices.reduce((sum, s) => sum + ((typeof s.percentage === 'number' && !isNaN(s.percentage)) ? s.percentage : 0), 0);
-        const unallocated = 100 - currentTotalAllocated;
-        if (Math.abs(unallocated) < 0.01 && currentTotalAllocated >= 99.99) {
+        const currentTotalAllocatedPercentage = slices.reduce((sum, s) => sum + ((typeof s.percentage === 'number' && !isNaN(s.percentage)) ? s.percentage : 0), 0);
+        const unallocatedPercentageValue = 100 - currentTotalAllocatedPercentage;
+        const unallocatedAmount = (unallocatedPercentageValue / 100) * totalBudget;
+
+        if (Math.abs(unallocatedPercentageValue) < 0.01 && currentTotalAllocatedPercentage >= 99.99) {
             unallocatedPercentageDiv.textContent = 'Orçamento totalmente alocado.';
             unallocatedPercentageDiv.style.color = '#27ae60';
             unallocatedPercentageDiv.style.backgroundColor = '#e9f7ef';
             unallocatedPercentageDiv.style.borderColor = '#a7d7c5';
-        } else if (currentTotalAllocated > 100.009) {
-            unallocatedPercentageDiv.textContent = `Superalocado em: ${(currentTotalAllocated - 100).toFixed(2)}%`;
+        } else if (currentTotalAllocatedPercentage > 100.009) {
+            unallocatedPercentageDiv.textContent = `Superalocado em: ${(currentTotalAllocatedPercentage - 100).toFixed(2)}% (R$${((currentTotalAllocatedPercentage - 100)/100 * totalBudget).toFixed(2)})`;
             unallocatedPercentageDiv.style.color = '#e74c3c';
             unallocatedPercentageDiv.style.backgroundColor = '#fdedec';
             unallocatedPercentageDiv.style.borderColor = '#f5b7b1';
-        } else {
-            unallocatedPercentageDiv.textContent = `Não alocado: ${unallocated.toFixed(2)}%`;
+        } else { // unallocatedPercentageValue >= 0.01
+            unallocatedPercentageDiv.textContent = `Não alocado: ${unallocatedPercentageValue.toFixed(2)}% (R$${unallocatedAmount.toFixed(2)})`;
             unallocatedPercentageDiv.style.color = '#c09853';
             unallocatedPercentageDiv.style.backgroundColor = '#fdf7e3';
             unallocatedPercentageDiv.style.borderColor = '#f5e0a0';

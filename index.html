@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gerenciador de Orçamento</title>
+
+    <meta name="theme-color" content="#34495e"/>
+    <link rel="apple-touch-icon" href="icons/icon-192x192.png"> <link rel="manifest" href="manifest.json">
+
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -25,23 +29,38 @@
 
         <div class="slices-table-container">
             <h2>Detalhamento do Orçamento</h2>
-            <table id="slicesTable">
-                <thead>
-                    <tr>
-                        <th class="color-col">Cor</th>
-                        <th class="name-col">Nome da Categoria</th>
-                        <th class="percentage-col">Porcentagem</th>
-                        <th class="amount-col">Valor (R$)</th>
-                        <th class="actions-col">Ações</th>
-                    </tr>
-                </thead>
-                <tbody id="slicesTableBody">
-                    </tbody>
-            </table>
+            <div class="table-scroll-wrapper"> <table id="slicesTable">
+                    <thead>
+                        <tr>
+                            <th class="color-col">Cor</th>
+                            <th class="name-col">Nome da Categoria</th>
+                            <th class="percentage-col">Porcentagem</th>
+                            <th class="amount-col">Valor (R$)</th>
+                            <th class="actions-col">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="slicesTableBody">
+                        </tbody>
+                </table>
+            </div>
             <div id="unallocatedPercentage" class="unallocated-info"></div>
         </div>
     </div>
 
     <script src="app.js"></script>
+    <script>
+        // Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js') // Certifique-se que sw.js está na raiz do seu site
+                    .then(registration => {
+                        console.log('ServiceWorker registrado com escopo: ', registration.scope);
+                    })
+                    .catch(error => {
+                        console.log('Falha ao registrar ServiceWorker: ', error);
+                    });
+            });
+        }
+    </script>
 </body>
 </html>

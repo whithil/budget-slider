@@ -34,11 +34,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     /**
      * Saves the current application state to local storage.
-     * Uses keys with '_v2_3' for this version.
+     * Uses keys with '_v2_4' for this version.
      */
     function saveState() {
-        localStorage.setItem('budgetSlices_v2_3', JSON.stringify(slices));
-        localStorage.setItem('totalBudget_v2_3', totalBudget.toString());
+        localStorage.setItem('budgetSlices_v2_4', JSON.stringify(slices));
+        localStorage.setItem('totalBudget_v2_4', totalBudget.toString());
     }
 
     /**
@@ -46,13 +46,13 @@ document.addEventListener('DOMContentLoaded', () => {
      * Includes data sanitization for robustness.
      */
     function loadState() {
-        const savedTotalBudget = localStorage.getItem('totalBudget_v2_3');
+        const savedTotalBudget = localStorage.getItem('totalBudget_v2_4');
         if (savedTotalBudget) {
             totalBudget = parseFloat(savedTotalBudget);
             totalBudgetInput.value = totalBudget;
         }
 
-        const savedSlices = localStorage.getItem('budgetSlices_v2_3');
+        const savedSlices = localStorage.getItem('budgetSlices_v2_4');
         if (savedSlices) {
             try {
                 let parsedSlices = JSON.parse(savedSlices);
@@ -80,13 +80,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error("Erro ao carregar fatias do localStorage (JSON inválido):", e);
                 slices = [];
             }
-            if (slices.length === 0) {
+            if (slices.length === 0) { // Fallback if parsing failed or resulted in empty
                 nextSliceId = 0;
                 addSlice('Mercado', 25, generateRandomRGB(), false);
                 addSlice('Contas Fixas', 20, generateRandomRGB(), false);
                 addSlice('Lazer', 10, generateRandomRGB(), false);
             }
-        } else {
+        } else { // No savedSlices, add default slices
             nextSliceId = 0;
             addSlice('Mercado', 25, generateRandomRGB(), false);
             addSlice('Contas Fixas', 20, generateRandomRGB(), false);
@@ -136,8 +136,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 let newPercentage = (newAmount / totalBudget) * 100;
                 slice.percentage = parseFloat(Math.max(0, newPercentage).toFixed(2));
             } else {
-                slice.percentage = (newAmount > 0) ? 0 : 0; // If budget is 0, amount only makes sense as 0%
-                if (newAmount > 0) console.warn("Orçamento total é 0.");
+                slice.percentage = (newAmount > 0 && totalBudget <= 0) ? 0 : 0; // If budget is 0, amount only makes sense as 0%
+                if (newAmount > 0 && totalBudget <= 0) console.warn("Orçamento total é 0. Não é possível calcular a porcentagem da fatia com base no valor.");
             }
             normalizePercentages(); renderApp();
         }
@@ -163,21 +163,20 @@ document.addEventListener('DOMContentLoaded', () => {
         if (currentTotalPercentage > 100) {
             const factor = 100 / currentTotalPercentage;
             slices.forEach(slice => { slice.percentage = parseFloat((slice.percentage * factor).toFixed(2)); });
-            currentTotalPercentage = slices.reduce((sum, s) => sum + s.percentage, 0); // Recalculate
+            currentTotalPercentage = slices.reduce((sum, s) => sum + s.percentage, 0);
         }
 
-        // Address floating point inaccuracies if scaled to 100
-        if (currentTotalPercentage > 99.99 && Math.abs(100 - currentTotalPercentage) > 0.001) {
+        if (currentTotalPercentage > 99.99 && Math.abs(100 - currentTotalPercentage) > 0.001) { // Check if scaled to 100
             let diffTo100 = 100 - currentTotalPercentage;
             if (slices.length > 0) {
-                slices.sort((a, b) => b.percentage - a.percentage); // Add to largest
+                slices.sort((a, b) => b.percentage - a.percentage);
                 const newLargestPercentage = slices[0].percentage + diffTo100;
                 if (newLargestPercentage >= 0) {
                     slices[0].percentage = parseFloat(newLargestPercentage.toFixed(2));
                 }
             }
         }
-        slices.forEach(s => { if (s.percentage < 0) s.percentage = 0; }); // Final negative check
+        slices.forEach(s => { if (s.percentage < 0) s.percentage = 0; });
     }
 
     /** Renders the budget slider UI, including the unallocated slice. */
@@ -214,7 +213,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 sliceDiv.appendChild(resizeHandle);
                 resizeHandle.addEventListener('mousedown', onMouseDownOnResizeHandle);
             }
-            if (index === slices.length - 1 && slices.length > 0) {
+            if (index === slices.length - 1 && slices.length > 0) { // Handle for the last *actual* slice
                 const lastResizeHandle = document.createElement('div');
                 lastResizeHandle.className = 'resize-handle last-slice-resize-handle';
                 lastResizeHandle.dataset.sliceIndex = index;
@@ -224,33 +223,29 @@ document.addEventListener('DOMContentLoaded', () => {
             budgetSlider.appendChild(sliceDiv);
         });
 
-        // Add unallocated slice if there's space
         const unallocatedPercentage = 100 - totalAllocatedPercentage;
-        if (unallocatedPercentage > 0.009) { // Only show if meaningfully unallocated
+        if (unallocatedPercentage > 0.009) {
             const unallocatedSliceDiv = document.createElement('div');
             unallocatedSliceDiv.className = 'unallocated-slice';
             unallocatedSliceDiv.style.flexBasis = `${unallocatedPercentage.toFixed(2)}%`;
-
             const captionDiv = document.createElement('div');
-            captionDiv.className = 'slice-caption'; // Can reuse or make specific
-            captionDiv.textContent = `Não Alocado: ${unallocatedPercentage.toFixed(2)}%`;
+            captionDiv.className = 'slice-caption';
+            captionDiv.textContent = `Não Alocado: ${unallocatedPercentage.toFixed(1)}%`; // Display with 1 decimal for space
             unallocatedSliceDiv.appendChild(captionDiv);
             budgetSlider.appendChild(unallocatedSliceDiv);
-
-            // Ensure the last *actual* slice doesn't have a right border if unallocated slice is present
-            if (slices.length > 0) {
-                const allRenderedSlices = budgetSlider.querySelectorAll('.slice');
-                if (allRenderedSlices.length > 0) {
-                     allRenderedSlices[allRenderedSlices.length-1].style.borderRight = 'none';
+        }
+         // Ensure the last *visual element* in the slider (could be an actual slice or the unallocated one)
+         // does not have a right border, to prevent double bordering or border on the very end.
+        const allVisualSlices = budgetSlider.children;
+        if (allVisualSlices.length > 0) {
+            for(let i=0; i < allVisualSlices.length -1; i++){
+                if(allVisualSlices[i].classList.contains('slice')){
+                     allVisualSlices[i].style.borderRight = '1px solid rgba(255, 255, 255, 0.8)';
                 }
             }
-        } else {
-            // If no unallocated slice, ensure the last actual slice has no borderRight
-             if (slices.length > 0) {
-                const allRenderedSlices = budgetSlider.querySelectorAll('.slice');
-                 if (allRenderedSlices.length > 0) {
-                    allRenderedSlices[allRenderedSlices.length-1].style.borderRight = 'none';
-                }
+            allVisualSlices[allVisualSlices.length-1].style.borderRight = 'none';
+            if(allVisualSlices[allVisualSlices.length-1].classList.contains('unallocated-slice') && allVisualSlices.length > 1){
+                 allVisualSlices[allVisualSlices.length-2].style.borderRight = '1px solid rgba(255, 255, 255, 0.8)'; // ensure actual last slice has border if unallocated follows
             }
         }
     }
@@ -267,7 +262,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const colorInput = document.createElement('input'); colorInput.type = 'color';
             colorInput.className = 'color-input-swatch'; colorInput.value = slice.color.startsWith('rgb') ? rgbToHex(slice.color) : slice.color;
             colorInput.addEventListener('input', (e) => updateSliceColor(slice.id, e.target.value));
-            colorInput.addEventListener('change', (e) => updateSliceColor(slice.id, e.target.value));
             colorCell.appendChild(colorInput);
 
             const nameCell = row.insertCell();
@@ -294,17 +288,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const currentTotalAllocated = slices.reduce((sum, s) => sum + ((typeof s.percentage === 'number' && !isNaN(s.percentage)) ? s.percentage : 0), 0);
         const unallocated = 100 - currentTotalAllocated;
-        if (Math.abs(unallocated) < 0.01 && currentTotalAllocated >= 99.99) { // Allow for tiny float inaccuracies around 100
+        if (Math.abs(unallocated) < 0.01 && currentTotalAllocated >= 99.99) {
             unallocatedPercentageDiv.textContent = 'Orçamento totalmente alocado.';
             unallocatedPercentageDiv.style.color = '#27ae60';
             unallocatedPercentageDiv.style.backgroundColor = '#e9f7ef';
             unallocatedPercentageDiv.style.borderColor = '#a7d7c5';
-        } else if (currentTotalAllocated > 100.009) { // Clearly over-allocated
+        } else if (currentTotalAllocated > 100.009) {
             unallocatedPercentageDiv.textContent = `Superalocado em: ${(currentTotalAllocated - 100).toFixed(2)}%`;
             unallocatedPercentageDiv.style.color = '#e74c3c';
             unallocatedPercentageDiv.style.backgroundColor = '#fdedec';
             unallocatedPercentageDiv.style.borderColor = '#f5b7b1';
-        } else { // unallocated >= 0.01
+        } else {
             unallocatedPercentageDiv.textContent = `Não alocado: ${unallocated.toFixed(2)}%`;
             unallocatedPercentageDiv.style.color = '#c09853';
             unallocatedPercentageDiv.style.backgroundColor = '#fdf7e3';

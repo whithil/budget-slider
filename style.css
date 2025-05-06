@@ -1,0 +1,295 @@
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    margin: 0;
+    background-color: #f4f7f6;
+    color: #333;
+    display: flex;
+    justify-content: center;
+    padding-top: 20px;
+    min-height: 100vh;
+}
+
+.app-container {
+    background-color: #fff;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    width: 90%;
+    max-width: 900px;
+}
+
+h1, h2 {
+    color: #2c3e50;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.budget-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    padding: 15px;
+    background-color: #ecf0f1;
+    border-radius: 8px;
+}
+
+#addSliceButton {
+    background-color: #3498db;
+    color: white;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: background-color 0.3s ease;
+}
+
+#addSliceButton:hover {
+    background-color: #2980b9;
+}
+
+.total-budget-container {
+    display: flex;
+    align-items: center;
+}
+
+#totalBudgetInput {
+    padding: 10px;
+    border: 1px solid #bdc3c7;
+    border-radius: 5px;
+    font-size: 1em;
+    width: 100px;
+    margin-left: 8px;
+    text-align: right;
+}
+
+.slider-wrapper {
+    margin-bottom: 30px;
+    padding: 10px;
+    background-color: #dde4e7;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.budget-slider {
+    display: flex;
+    width: 100%;
+    height: 50px;
+    background-color: #ecf0f1;
+    border-radius: 5px;
+    position: relative;
+    cursor: default;
+}
+
+.slice {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    box-sizing: border-box;
+    border-right: 2px solid rgba(255, 255, 255, 0.7);
+    transition: background-color 0.3s ease, flex-basis 0.2s ease-out;
+}
+
+.slice:last-child { /* This will now apply to the last *actual* budget slice if unallocated exists */
+    border-right: none;
+}
+
+/* New style for the unallocated slice */
+.unallocated-slice {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    background-color: #e0e0e0; /* Light gray for distinction */
+    color: #555;
+    font-size: 0.8em;
+    text-align: center;
+    border-left: 2px dashed #c0c0c0; /* Dashed border to indicate it's different */
+    transition: flex-basis 0.2s ease-out;
+}
+.unallocated-slice .slice-caption { /* Re-use slice-caption for consistency if needed, or new style */
+    color: #555;
+    font-weight: normal;
+    text-shadow: none;
+}
+
+
+.slice-tooltip {
+    position: absolute;
+    bottom: 110%;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(0, 0, 0, 0.75);
+    color: white;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 0.85em;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+    pointer-events: none;
+    z-index: 100;
+}
+
+.slice:hover .slice-tooltip {
+    opacity: 1;
+    visibility: visible;
+}
+
+.slice-caption {
+    color: white;
+    font-size: 0.8em;
+    font-weight: bold;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.4);
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    padding: 0 5px;
+    pointer-events: none;
+}
+
+
+.resize-handle {
+    width: 8px;
+    height: 100%;
+    position: absolute;
+    right: -4px;
+    top: 0;
+    cursor: col-resize;
+    z-index: 10;
+}
+
+.slices-table-container {
+    margin-top: 30px;
+}
+
+#slicesTable {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+#slicesTable th, #slicesTable td {
+    border: 1px solid #ddd;
+    padding: 10px 12px;
+    text-align: left;
+    vertical-align: middle;
+}
+
+#slicesTable th {
+    background-color: #34495e;
+    color: white;
+    font-weight: normal;
+}
+
+#slicesTable tbody tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+#slicesTable tbody tr:hover {
+    background-color: #e8f4f8;
+}
+
+.color-input-swatch {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    width: 25px;
+    height: 25px;
+    padding: 0;
+    border: 1px solid #ccc;
+    border-radius: 50%;
+    cursor: pointer;
+    display: inline-block;
+    vertical-align: middle;
+    background-color: transparent;
+}
+.color-input-swatch::-webkit-color-swatch {
+    border: none;
+    border-radius: 50%;
+    padding: 0;
+}
+.color-input-swatch::-webkit-color-swatch-wrapper {
+    padding: 0;
+    border-radius: 50%;
+}
+.color-input-swatch::-moz-color-swatch {
+    border: none;
+    border-radius: 50%;
+    padding: 0;
+}
+
+
+.slice-name-input {
+    width: 95%;
+    padding: 6px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+.slice-name-input:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+}
+
+.slice-amount-input {
+    width: 80px;
+    padding: 6px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+    text-align: right;
+}
+.slice-amount-input:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+}
+
+
+.delete-slice-btn {
+    background-color: #e74c3c;
+    color: white;
+    border: none;
+    padding: 6px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9em;
+}
+.delete-slice-btn:hover {
+    background-color: #c0392b;
+}
+
+.unallocated-info {
+    margin-top: 15px;
+    padding: 10px;
+    background-color: #fdf7e3;
+    border: 1px solid #f5e0a0;
+    border-radius: 5px;
+    text-align: center;
+    font-weight: bold;
+    color: #c09853;
+}
+
+.color-col { width: 8%; text-align: center; }
+.name-col { width: 38%; }
+.percentage-col { width: 17%; text-align: right; }
+.amount-col { width: 21%; text-align: right; }
+.actions-col { width: 16%; text-align: center;}
+
+#slicesTable td.percentage-col,
+#slicesTable td.amount-col {
+    text-align: right;
+}
+#slicesTable td.actions-col {
+    text-align: center;
+}
+#slicesTable td.color-col {
+    text-align: center;
+}

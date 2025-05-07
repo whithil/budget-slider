@@ -3,19 +3,30 @@ document.addEventListener('DOMContentLoaded', () => {
     const budgetSlider = document.getElementById('budgetSlider');
     const slicesTableBody = document.getElementById('slicesTableBody');
     const addSliceButton = document.getElementById('addSliceButton');
-    const addSliceTableButton = document.getElementById('addSliceTableButton'); // New button
+    const addSliceTableButton = document.getElementById('addSliceTableButton');
     const totalBudgetInput = document.getElementById('totalBudgetInput');
     const unallocatedPercentageDiv = document.getElementById('unallocatedPercentage');
 
+    // Sidebar DOM Elements
+    const menuButton = document.getElementById('menuButton');
+    const closeMenuButton = document.getElementById('closeMenuButton');
+    const sidebar = document.getElementById('sidebar');
+    const appContainer = document.getElementById('appContainer'); // Main content area
+    const newStateNameInput = document.getElementById('newStateNameInput');
+    const saveNewStateButton = document.getElementById('saveNewStateButton');
+    const savedStatesListUI = document.getElementById('savedStatesList');
+
+
     // Application State
-    let slices = [];
-    let totalBudget = parseFloat(totalBudgetInput.value) || 1000;
-    let nextSliceId = 0;
+    let slices = []; // Current working slices
+    let totalBudget = parseFloat(totalBudgetInput.value) || 1000; // Current working total budget
+    let nextSliceId = 0; // For current working slices
+    let allSavedStates = []; // Array to hold all named save states {id, name, slices, totalBudget}
 
     // Drag State Variables
     let currentlyDraggedHandle = null;
     let currentlyDraggedSliceData = null;
-    let initialClientX = 0; // Use clientX for broader compatibility including touch
+    let initialClientX = 0;
     let initialSlicePercentage = 0;
     let adjacentSlicePercentage = 0;
     let totalSliderWidth = 0;
@@ -30,25 +41,32 @@ document.addEventListener('DOMContentLoaded', () => {
         return `rgb(${r}, ${g}, ${b})`;
     }
 
-    /** Saves state to local storage (version _v2_6). */
-    function saveState() {
-        localStorage.setItem('budgetSlices_v2_6', JSON.stringify(slices));
-        localStorage.setItem('totalBudget_v2_6', totalBudget.toString());
+    // --- State Management for CURRENT WORKING SET ---
+    /** Saves the current working state (slices and totalBudget) to local storage. */
+    function saveCurrentWorkingState() {
+        localStorage.setItem('budgetSlices_v2_7', JSON.stringify(slices));
+        localStorage.setItem('totalBudget_v2_7', totalBudget.toString());
     }
 
-    /** Loads state from local storage with sanitization. */
-    function loadState() {
-        const savedTotalBudget = localStorage.getItem('totalBudget_v2_6');
+    /** Loads the current working state from local storage. */
+    function loadCurrentWorkingState() {
+        const savedTotalBudget = localStorage.getItem('totalBudget_v2_7');
         if (savedTotalBudget) {
             totalBudget = parseFloat(savedTotalBudget);
             totalBudgetInput.value = totalBudget;
+        } else {
+            totalBudget = 1000; // Default if nothing saved
+            totalBudgetInput.value = totalBudget;
         }
-        const savedSlices = localStorage.getItem('budgetSlices_v2_6');
+
+        const savedSlices = localStorage.getItem('budgetSlices_v2_7');
+        let tempNextId = 0; // To calculate nextSliceId for the current working set
+        const seenIds = new Set(); // To handle potential ID clashes if data is manually edited/corrupted
+
         if (savedSlices) {
             try {
                 let parsedSlices = JSON.parse(savedSlices);
                 if (Array.isArray(parsedSlices)) {
-                    let tempNextId = 0; const seenIds = new Set();
                     slices = parsedSlices.map(s => {
                         let currentId = (s && typeof s.id === 'number') ? s.id : -1;
                         if (currentId === -1 || seenIds.has(currentId)) {
@@ -64,25 +82,198 @@ document.addEventListener('DOMContentLoaded', () => {
                             color: (s && typeof s.color === 'string' && s.color.match(/^(rgb\(|#)/)) ? s.color : generateRandomRGB()
                         };
                     });
-                    nextSliceId = tempNextId;
                 } else { slices = []; }
-            } catch (e) { console.error("Erro ao carregar fatias:", e); slices = []; }
-            if (slices.length === 0) {
-                nextSliceId = 0;
-                addSlice('Mercado', 25, generateRandomRGB(), false);
-                addSlice('Contas Fixas', 20, generateRandomRGB(), false);
-                addSlice('Lazer', 10, generateRandomRGB(), false);
-            }
-        } else {
-            nextSliceId = 0;
-            addSlice('Mercado', 25, generateRandomRGB(), false);
-            addSlice('Contas Fixas', 20, generateRandomRGB(), false);
-            addSlice('Lazer', 10, generateRandomRGB(), false);
+            } catch (e) { console.error("Erro ao carregar fatias de trabalho:", e); slices = []; }
         }
-        normalizePercentages(); renderApp();
+        
+        if (slices.length === 0) { // If no working slices loaded or parsing failed
+            tempNextId = 0; // Reset for default items
+            // Do not call addSlice here, as it modifies 'slices' directly and calls renderApp.
+            // Instead, build the default array.
+            const defaultSlicesData = [
+                { id: tempNextId++, name: 'Mercado', percentage: 25, color: generateRandomRGB() },
+                { id: tempNextId++, name: 'Contas Fixas', percentage: 20, color: generateRandomRGB() },
+                { id: tempNextId++, name: 'Lazer', percentage: 10, color: generateRandomRGB() }
+            ];
+            slices = defaultSlicesData; // Assign default slices
+        }
+        nextSliceId = tempNextId; // Set the nextSliceId for the current working set
+        normalizePercentages();
+        // renderApp() will be called by the main initialization logic after all states are loaded
     }
 
-    /** Adds a new slice. */
+    // --- State Management for ALL SAVED STATES (in sidebar) ---
+    /** Loads all named save states from local storage. */
+    function loadAllNamedStates() {
+        const statesJSON = localStorage.getItem('budgetManager_allStates_v2_7');
+        if (statesJSON) {
+            try {
+                allSavedStates = JSON.parse(statesJSON);
+                if (!Array.isArray(allSavedStates)) allSavedStates = []; // Ensure it's an array
+            } catch (e) {
+                console.error("Erro ao carregar lista de orçamentos salvos:", e);
+                allSavedStates = [];
+            }
+        } else {
+            allSavedStates = [];
+        }
+        renderSavedStatesList();
+    }
+
+    /** Saves all named save states to local storage. */
+    function saveAllNamedStates() {
+        localStorage.setItem('budgetManager_allStates_v2_7', JSON.stringify(allSavedStates));
+    }
+
+    /** Renders the list of saved states in the sidebar. */
+    function renderSavedStatesList() {
+        savedStatesListUI.innerHTML = ''; // Clear current list
+        if (allSavedStates.length === 0) {
+            savedStatesListUI.innerHTML = '<li class="no-states">Nenhum orçamento salvo.</li>';
+            return;
+        }
+        allSavedStates.forEach(state => {
+            const li = document.createElement('li');
+            li.dataset.stateId = state.id;
+
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'state-name';
+            nameSpan.textContent = state.name;
+            li.appendChild(nameSpan);
+
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'state-actions';
+
+            const loadBtn = document.createElement('button');
+            loadBtn.textContent = 'Carregar';
+            loadBtn.className = 'load-btn';
+            loadBtn.onclick = () => loadSpecificNamedState(state.id);
+            actionsDiv.appendChild(loadBtn);
+
+            const renameBtn = document.createElement('button');
+            renameBtn.textContent = 'Renomear';
+            renameBtn.className = 'rename-btn';
+            renameBtn.onclick = () => renameNamedState(state.id);
+            actionsDiv.appendChild(renameBtn);
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.textContent = 'Excluir';
+            deleteBtn.className = 'delete-btn';
+            deleteBtn.onclick = () => deleteNamedState(state.id);
+            actionsDiv.appendChild(deleteBtn);
+
+            li.appendChild(actionsDiv);
+            savedStatesListUI.appendChild(li);
+        });
+    }
+
+    /** Handles saving the current working budget as a new named state. */
+    function handleSaveNewState() {
+        const name = newStateNameInput.value.trim();
+        if (!name) {
+            alert("Por favor, insira um nome para o orçamento.");
+            newStateNameInput.focus();
+            return;
+        }
+        // Check if name already exists (optional: allow overwrite or ask user)
+        if (allSavedStates.some(s => s.name === name)) {
+            if (!confirm(`Já existe um orçamento chamado "${name}". Deseja sobrescrevê-lo?`)) {
+                return;
+            }
+            // If overwriting, remove the old one by name first
+            allSavedStates = allSavedStates.filter(s => s.name !== name);
+        }
+
+        const newState = {
+            id: Date.now(), // Simple unique ID
+            name: name,
+            slices: JSON.parse(JSON.stringify(slices)), // Deep copy
+            totalBudget: totalBudget
+        };
+        allSavedStates.push(newState);
+        saveAllNamedStates();
+        renderSavedStatesList();
+        newStateNameInput.value = ''; // Clear input
+        alert(`Orçamento "${name}" salvo!`);
+    }
+
+    /** Loads a specific named state into the current working area. */
+    function loadSpecificNamedState(stateId) {
+        const stateToLoad = allSavedStates.find(s => s.id === stateId);
+        if (stateToLoad) {
+            slices = JSON.parse(JSON.stringify(stateToLoad.slices)); // Deep copy
+            totalBudget = stateToLoad.totalBudget;
+            totalBudgetInput.value = totalBudget;
+
+            // Recalculate nextSliceId for the newly loaded set
+            let tempNextId = 0;
+            if (slices.length > 0) {
+                tempNextId = Math.max(...slices.map(s => s.id)) + 1;
+            }
+            nextSliceId = tempNextId;
+
+            normalizePercentages();
+            renderApp(); // This will also call saveCurrentWorkingState
+            closeSidebar();
+            alert(`Orçamento "${stateToLoad.name}" carregado.`);
+        } else {
+            alert("Erro: Orçamento salvo não encontrado.");
+        }
+    }
+
+    /** Renames a specific named state. */
+    function renameNamedState(stateId) {
+        const stateToRename = allSavedStates.find(s => s.id === stateId);
+        if (stateToRename) {
+            const newName = prompt(`Digite o novo nome para "${stateToRename.name}":`, stateToRename.name);
+            if (newName && newName.trim() !== "") {
+                // Check if new name already exists (excluding the current one being renamed)
+                if (allSavedStates.some(s => s.name === newName.trim() && s.id !== stateId)) {
+                    alert(`Erro: Já existe um orçamento chamado "${newName.trim()}".`);
+                    return;
+                }
+                stateToRename.name = newName.trim();
+                saveAllNamedStates();
+                renderSavedStatesList();
+            }
+        }
+    }
+
+    /** Deletes a specific named state. */
+    function deleteNamedState(stateId) {
+        const stateToDelete = allSavedStates.find(s => s.id === stateId);
+        if (stateToDelete) {
+            if (confirm(`Tem certeza que deseja excluir o orçamento "${stateToDelete.name}"?`)) {
+                allSavedStates = allSavedStates.filter(s => s.id !== stateId);
+                saveAllNamedStates();
+                renderSavedStatesList();
+            }
+        }
+    }
+
+
+    // --- Sidebar Toggle Logic ---
+    function openSidebar() {
+        sidebar.classList.add('open');
+        document.body.classList.add('sidebar-open'); // To push main content if needed
+        // appContainer.style.marginLeft = sidebar.style.width; // Example of pushing content
+    }
+    function closeSidebar() {
+        sidebar.classList.remove('open');
+        document.body.classList.remove('sidebar-open');
+        // appContainer.style.marginLeft = "0";
+    }
+    menuButton.addEventListener('click', openSidebar);
+    closeMenuButton.addEventListener('click', closeSidebar);
+    // Close sidebar if user clicks outside of it (optional)
+    // document.addEventListener('click', (event) => {
+    //     if (sidebar.classList.contains('open') && !sidebar.contains(event.target) && event.target !== menuButton) {
+    //         closeSidebar();
+    //     }
+    // });
+
+
+    /** Adds a new slice to the current working set. */
     function addSlice(name = 'Nova Categoria', percentage = 5, color = generateRandomRGB(), doRender = true) {
         percentage = Math.max(0, percentage);
         const newSlice = { id: nextSliceId++, name: `${name}`, percentage: percentage, color: color };
@@ -90,25 +281,25 @@ document.addEventListener('DOMContentLoaded', () => {
         if (doRender) { normalizePercentages(); renderApp(); }
     }
 
-    /** Removes a slice. */
+    /** Removes a slice from the current working set. */
     function removeSlice(sliceId) {
         slices = slices.filter(slice => slice.id !== sliceId);
         normalizePercentages(); renderApp();
     }
 
-    /** Updates slice name. */
+    /** Updates slice name in the current working set. */
     function updateSliceName(sliceId, newName) {
         const slice = slices.find(s => s.id === sliceId);
         if (slice) { slice.name = newName; renderApp(); }
     }
 
-    /** Updates slice color. */
+    /** Updates slice color in the current working set. */
     function updateSliceColor(sliceId, newColor) {
         const slice = slices.find(s => s.id === sliceId);
         if (slice) { slice.color = newColor; renderApp(); }
     }
 
-    /** Updates slice percentage by amount. */
+    /** Updates slice percentage by amount in the current working set. */
     function updateSliceByAmount(sliceId, newAmount) {
         const slice = slices.find(s => s.id === sliceId);
         if (slice) {
@@ -123,7 +314,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    /** Updates total budget. */
+    /** Updates total budget for the current working set. */
     function updateTotalBudget() {
         const newTotal = parseFloat(totalBudgetInput.value);
         totalBudget = (!isNaN(newTotal) && newTotal >= 0) ? newTotal : totalBudget;
@@ -131,7 +322,7 @@ document.addEventListener('DOMContentLoaded', () => {
         normalizePercentages(); renderApp();
     }
 
-    /** Normalizes percentages: ensures non-negative, scales if >100%, allows <100%. */
+    /** Normalizes percentages for the current working set. */
     function normalizePercentages() {
         if (slices.length === 0) return;
         slices.forEach(slice => {
@@ -156,7 +347,7 @@ document.addEventListener('DOMContentLoaded', () => {
         slices.forEach(s => { if (s.percentage < 0) s.percentage = 0; });
     }
 
-    /** Renders the slider with an unallocated segment. */
+    /** Renders the slider for the current working set. */
     function renderSlider() {
         budgetSlider.innerHTML = '';
         totalSliderWidth = budgetSlider.offsetWidth;
@@ -178,13 +369,10 @@ document.addEventListener('DOMContentLoaded', () => {
             tooltipDiv.className = 'slice-tooltip';
             tooltipDiv.textContent = `${slice.name}: ${percentageValue.toFixed(2)}% (R$${amount.toFixed(2)})`;
             sliceDiv.appendChild(tooltipDiv);
-
-            // Common function to add resize handle listeners
             const addResizeListeners = (handleElement) => {
                 handleElement.addEventListener('mousedown', onPointerDownResize);
-                handleElement.addEventListener('touchstart', onPointerDownResize, { passive: false }); // passive: false to allow preventDefault
+                handleElement.addEventListener('touchstart', onPointerDownResize, { passive: false });
             };
-
             if (index < slices.length - 1) {
                 const resizeHandle = document.createElement('div');
                 resizeHandle.className = 'resize-handle intermediate-resize-handle';
@@ -226,7 +414,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    /** Renders the table. */
+    /** Renders the table for the current working set. */
     function renderTable() {
         slicesTableBody.innerHTML = '';
         slices.forEach(slice => {
@@ -287,20 +475,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Unified Pointer Down for Resize Handles ---
     function onPointerDownResize(e) {
-        if (e.type === 'touchstart') e.preventDefault(); // Prevent scrolling/zooming on touch
+        if (e.type === 'touchstart') e.preventDefault();
         currentlyDraggedHandle = e.target;
         const sliceIndex = parseInt(currentlyDraggedHandle.dataset.sliceIndex);
-        const currentSlice = slices[sliceIndex];
-        if (!currentSlice) return;
-
+        const currentSlice = slices[sliceIndex]; if (!currentSlice) return;
         currentSlice.percentage = (typeof currentSlice.percentage === 'number' && !isNaN(currentSlice.percentage)) ? currentSlice.percentage : 0;
         initialClientX = (e.type === 'touchstart') ? e.touches[0].clientX : e.clientX;
         totalSliderWidth = budgetSlider.offsetWidth;
         initialSlicePercentage = currentSlice.percentage;
-
         if (currentlyDraggedHandle.classList.contains('intermediate-resize-handle')) {
-            const nextSlice = slices[sliceIndex + 1];
-            if (!nextSlice) return;
+            const nextSlice = slices[sliceIndex + 1]; if (!nextSlice) return;
             nextSlice.percentage = (typeof nextSlice.percentage === 'number' && !isNaN(nextSlice.percentage)) ? nextSlice.percentage : 0;
             currentlyDraggedSliceData = { current: currentSlice, next: nextSlice };
             adjacentSlicePercentage = nextSlice.percentage;
@@ -320,8 +504,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!currentlyDraggedHandle || !currentlyDraggedSliceData || !currentlyDraggedSliceData.next) return;
         if (e.type === 'touchmove') e.preventDefault();
         const currentClientX = (e.type === 'touchmove') ? e.touches[0].clientX : e.clientX;
-        const dx = currentClientX - initialClientX;
-        const percentageChange = (dx / totalSliderWidth) * 100;
+        const dx = currentClientX - initialClientX; const percentageChange = (dx / totalSliderWidth) * 100;
         let newCurrentSlicePercentage = initialSlicePercentage + percentageChange;
         let newAdjacentSlicePercentage = adjacentSlicePercentage - percentageChange;
         const combinedInitialPercentage = initialSlicePercentage + adjacentSlicePercentage;
@@ -345,8 +528,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!currentlyDraggedHandle || !currentlyDraggedSliceData || currentlyDraggedSliceData.next) return;
         if (e.type === 'touchmove') e.preventDefault();
         const currentClientX = (e.type === 'touchmove') ? e.touches[0].clientX : e.clientX;
-        const dx = currentClientX - initialClientX;
-        const percentageChange = (dx / totalSliderWidth) * 100;
+        const dx = currentClientX - initialClientX; const percentageChange = (dx / totalSliderWidth) * 100;
         let newCurrentSlicePercentage = initialSlicePercentage + percentageChange;
         newCurrentSlicePercentage = Math.max(MIN_SLICE_PERCENTAGE, newCurrentSlicePercentage);
         currentlyDraggedSliceData.current.percentage = parseFloat(newCurrentSlicePercentage.toFixed(2));
@@ -365,13 +547,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         document.removeEventListener('mouseup', onPointerUpResize);
         document.removeEventListener('touchend', onPointerUpResize);
-        normalizePercentages(); renderApp();
+        normalizePercentages(); renderApp(); // renderApp now calls saveCurrentWorkingState
         currentlyDraggedHandle = null; currentlyDraggedSliceData = null;
         initialClientX = 0; initialSlicePercentage = 0; adjacentSlicePercentage = 0;
     }
 
-    /** Central function to re-render UI and save state. */
-    function renderApp() { renderSlider(); renderTable(); saveState(); }
+    /** Central function to re-render UI and save the current working state. */
+    function renderApp() {
+        renderSlider();
+        renderTable();
+        saveCurrentWorkingState(); // Save the active working set after any render
+    }
 
     // Event Listeners Setup
     const commonAddSliceAction = () => {
@@ -381,10 +567,12 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (totalCurrentPercentage + initialNewPercentage > 100 && totalCurrentPercentage <= 100) {
             initialNewPercentage = Math.max(0, 100 - totalCurrentPercentage);
         } else if (totalCurrentPercentage >= 100) initialNewPercentage = 0;
-        addSlice('Nova Categoria', initialNewPercentage);
+        addSlice('Nova Categoria', initialNewPercentage); // addSlice calls renderApp, which saves current working state
     };
     addSliceButton.addEventListener('click', commonAddSliceAction);
-    addSliceTableButton.addEventListener('click', commonAddSliceAction); // Listener for the new button
+    addSliceTableButton.addEventListener('click', commonAddSliceAction);
+    saveNewStateButton.addEventListener('click', handleSaveNewState);
+
 
     totalBudgetInput.addEventListener('change', updateTotalBudget);
     totalBudgetInput.addEventListener('keyup', (e) => {
@@ -392,7 +580,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Initial Load
-    loadState();
+    loadAllNamedStates(); // Load the list of named states for the sidebar
+    loadCurrentWorkingState(); // Load the last active working set (or defaults)
+    renderApp(); // Initial render of the loaded/default working set
+
     setTimeout(() => {
         totalSliderWidth = budgetSlider.offsetWidth;
         if (totalSliderWidth === 0) console.warn("Largura do slider não determinada.");

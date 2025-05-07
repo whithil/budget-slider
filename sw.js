@@ -1,15 +1,14 @@
-const CACHE_NAME = 'budget-manager-v2.6-cache'; // Updated cache name for new version
+const CACHE_NAME = 'budget-manager-v2.7-cache'; // Updated cache name
 const urlsToCache = [
   '/',
   'index.html',
   'style.css',
   'app.js',
-  // Replace with your actual icon paths after creating them
   'https://placehold.co/192x192/3498db/ffffff?text=Icon192' // Placeholder icon
 ];
 
 self.addEventListener('install', event => {
-  console.log('[ServiceWorker] Installing...');
+  console.log('[ServiceWorker] Installing v2.7...');
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
@@ -27,7 +26,7 @@ self.addEventListener('install', event => {
 });
 
 self.addEventListener('activate', event => {
-  console.log('[ServiceWorker] Activating...');
+  console.log('[ServiceWorker] Activating v2.7...');
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
@@ -49,29 +48,33 @@ self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') {
     return;
   }
+  // Network first, then cache strategy for dynamic content or frequent updates.
+  // For a mostly static shell with dynamic data managed by JS, cache-first is often fine.
   event.respondWith(
-    caches.match(event.request)
-      .then(cachedResponse => {
-        if (cachedResponse) {
-          return cachedResponse;
+    fetch(event.request)
+      .then(networkResponse => {
+        // Check if we received a valid response
+        if (networkResponse && networkResponse.ok) {
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME)
+            .then(cache => {
+              cache.put(event.request, responseToCache);
+            });
         }
-        return fetch(event.request).then(
-          networkResponse => {
-            if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
-              return networkResponse;
+        return networkResponse;
+      })
+      .catch(() => {
+        // Network request failed, try to get it from the cache.
+        return caches.match(event.request)
+          .then(cachedResponse => {
+            if (cachedResponse) {
+              return cachedResponse;
             }
-            const responseToCache = networkResponse.clone();
-            caches.open(CACHE_NAME)
-              .then(cache => {
-                cache.put(event.request, responseToCache);
-              });
-            return networkResponse;
-          }
-        ).catch(error => {
-            console.error('[ServiceWorker] Fetch failed:', error, event.request.url);
-            // Optionally, return a fallback page like offline.html
-            // return caches.match('/offline.html');
-        });
+            // If not in cache and network failed, you could return a generic fallback page.
+            // For this app, if core files are cached, it should mostly work offline once loaded.
+            console.warn('[ServiceWorker] Resource not found in cache or network:', event.request.url);
+            // return caches.match('/offline.html'); // Example fallback
+          });
       })
   );
 });

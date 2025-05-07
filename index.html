@@ -11,8 +11,20 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="app-container">
-        <h1>Gerenciador de Orçamento Interativo</h1>
+    <button id="menuButton" class="menu-button" aria-label="Abrir menu de orçamentos salvos">&#9776;</button>
+
+    <div id="sidebar" class="sidebar">
+        <a href="javascript:void(0)" class="close-btn" id="closeMenuButton">&times;</a>
+        <h3>Orçamentos Salvos</h3>
+        <div class="save-current-state-form">
+            <input type="text" id="newStateNameInput" placeholder="Nome do novo orçamento">
+            <button id="saveNewStateButton">Salvar Atual</button>
+        </div>
+        <ul id="savedStatesList">
+            </ul>
+    </div>
+
+    <div class="app-container" id="appContainer"> <h1>Gerenciador de Orçamento Interativo</h1>
 
         <div class="budget-controls">
             <button id="addSliceButton">Adicionar Categoria</button>
@@ -32,7 +44,8 @@
                 <h2>Detalhamento do Orçamento</h2>
                 <button id="addSliceTableButton" class="add-slice-table-btn" aria-label="Adicionar nova categoria à tabela">+</button>
             </div>
-            <div class="table-scroll-wrapper"> <table id="slicesTable">
+            <div class="table-scroll-wrapper">
+                <table id="slicesTable">
                     <thead>
                         <tr>
                             <th class="color-col">Cor</th>
@@ -55,7 +68,7 @@
         // Service Worker Registration
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js') // Certifique-se que sw.js está na raiz do seu site
+                navigator.serviceWorker.register('/sw.js')
                     .then(registration => {
                         console.log('ServiceWorker registrado com escopo: ', registration.scope);
                     })

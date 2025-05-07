@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let allSavedStates = [];
 
     // Drag State Variables
-    let currentlyDraggedHandle = null; // Can be side resize handle or bottom marker
+    let currentlyDraggedHandle = null; 
     let currentlyDraggedSliceData = null;
     let initialClientX = 0;
     let initialSlicePercentage = 0;
@@ -29,9 +29,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let totalSliderWidth = 0;
 
     const MIN_SLICE_PERCENTAGE = 0.5;
-    const CURRENT_STATE_LS_KEY_SLICES = 'budgetSlices_v2_10'; // Nova versão
-    const CURRENT_STATE_LS_KEY_BUDGET = 'totalBudget_v2_10'; // Nova versão
-    const ALL_STATES_LS_KEY = 'budgetManager_allStates_v2_10'; // Nova versão
+    const CURRENT_STATE_LS_KEY_SLICES = 'budgetSlices_v2_10'; 
+    const CURRENT_STATE_LS_KEY_BUDGET = 'totalBudget_v2_10'; 
+    const ALL_STATES_LS_KEY = 'budgetManager_allStates_v2_10';
 
 
     /** Generates a random RGB color string. */
@@ -333,7 +333,7 @@ document.addEventListener('DOMContentLoaded', () => {
         budgetSlider.innerHTML = '';
         totalSliderWidth = budgetSlider.offsetWidth;
         let totalAllocatedPercentage = 0;
-        slices.forEach((slice, index) => {
+        slices.forEach((slice, index) => { // 'index' is the correct loop variable here
             const percentageValue = (typeof slice.percentage === 'number' && !isNaN(slice.percentage)) ? slice.percentage : 0;
             totalAllocatedPercentage += percentageValue;
             const sliceDiv = document.createElement('div');
@@ -351,34 +351,30 @@ document.addEventListener('DOMContentLoaded', () => {
             tooltipDiv.textContent = `${slice.name}: ${percentageValue.toFixed(2)}% (R$${amount.toFixed(2)})`;
             sliceDiv.appendChild(tooltipDiv);
 
-            // Add bottom marker
             const bottomMarker = document.createElement('div');
             bottomMarker.className = 'slice-bottom-marker';
-            bottomMarker.dataset.sliceIndex = index; // Link to the slice index
+            // bottomMarker.dataset.sliceIndex = index; // Not strictly needed if passing index directly
             sliceDiv.appendChild(bottomMarker);
 
-
-            const addResizeListeners = (handleElement, isBottomMarker = false) => {
-                // Pass sliceIndex to onPointerDownResize, and a flag if it's a bottom marker
-                handleElement.addEventListener('mousedown', (e) => onPointerDownResize(e, sliceIndex, isBottomMarker));
-                handleElement.addEventListener('touchstart', (e) => onPointerDownResize(e, sliceIndex, isBottomMarker), { passive: false });
+            // Corrected addResizeListeners function definition and calls
+            const addResizeListeners = (handleElement, loopIndex, isBottomMarker = false) => {
+                handleElement.addEventListener('mousedown', (e) => onPointerDownResize(e, loopIndex, isBottomMarker));
+                handleElement.addEventListener('touchstart', (e) => onPointerDownResize(e, loopIndex, isBottomMarker), { passive: false });
             };
             
-            addResizeListeners(bottomMarker, true); // Add listeners to bottom marker
+            addResizeListeners(bottomMarker, index, true); // Pass current loop 'index'
 
             if (index < slices.length - 1) {
                 const resizeHandle = document.createElement('div');
                 resizeHandle.className = 'resize-handle intermediate-resize-handle';
-                // resizeHandle.dataset.sliceIndex = index; // sliceIndex is passed directly now
                 sliceDiv.appendChild(resizeHandle);
-                addResizeListeners(resizeHandle, false); // false for side handle
+                addResizeListeners(resizeHandle, index, false); // Pass current loop 'index'
             }
             if (index === slices.length - 1 && slices.length > 0) {
                 const lastResizeHandle = document.createElement('div');
                 lastResizeHandle.className = 'resize-handle last-slice-resize-handle';
-                // lastResizeHandle.dataset.sliceIndex = index; // sliceIndex is passed directly now
                 sliceDiv.appendChild(lastResizeHandle);
-                addResizeListeners(lastResizeHandle, false); // false for side handle
+                addResizeListeners(lastResizeHandle, index, false); // Pass current loop 'index'
             }
             budgetSlider.appendChild(sliceDiv);
         });
@@ -464,30 +460,29 @@ document.addEventListener('DOMContentLoaded', () => {
         return "#" + r + g + b;
     }
 
-    function onPointerDownResize(e, sliceIndex, isBottomMarker = false) { // Added sliceIndex and isBottomMarker
+    function onPointerDownResize(e, sliceLoopIndex, isBottomMarker = false) {
         if (e.type === 'touchstart') e.preventDefault();
-        currentlyDraggedHandle = e.target; // This is now the marker or the side handle
+        currentlyDraggedHandle = e.target; 
         
-        const currentSlice = slices[sliceIndex];
-        if (!currentSlice) { console.error("Slice não encontrada para o marcador:", sliceIndex); return; }
+        const currentSlice = slices[sliceLoopIndex]; // Use the passed loopIndex
+        if (!currentSlice) { console.error("Slice não encontrada:", sliceLoopIndex); return; }
 
         currentSlice.percentage = (typeof currentSlice.percentage === 'number' && !isNaN(currentSlice.percentage)) ? currentSlice.percentage : 0;
         initialClientX = (e.type === 'touchstart') ? e.touches[0].clientX : e.clientX;
         totalSliderWidth = budgetSlider.offsetWidth;
         initialSlicePercentage = currentSlice.percentage;
 
-        // Determine if it's an intermediate resize (affects next slice) or last slice resize
-        const isLastSlice = (sliceIndex === slices.length - 1);
+        const isLastSlice = (sliceLoopIndex === slices.length - 1);
 
-        if (!isLastSlice) { // Intermediate slice (or a bottom marker on an intermediate slice)
-            const nextSlice = slices[sliceIndex + 1];
-            if (!nextSlice) { console.error("Próxima slice não encontrada:", sliceIndex + 1); return; }
+        if (!isLastSlice) { 
+            const nextSlice = slices[sliceLoopIndex + 1];
+            if (!nextSlice) { console.error("Próxima slice não encontrada:", sliceLoopIndex + 1); return; }
             nextSlice.percentage = (typeof nextSlice.percentage === 'number' && !isNaN(nextSlice.percentage)) ? nextSlice.percentage : 0;
             currentlyDraggedSliceData = { current: currentSlice, next: nextSlice };
             adjacentSlicePercentage = nextSlice.percentage;
             document.addEventListener('mousemove', onPointerMoveResizeIntermediate);
             document.addEventListener('touchmove', onPointerMoveResizeIntermediate, { passive: false });
-        } else { // Last slice (or a bottom marker on the last slice)
+        } else { 
             currentlyDraggedSliceData = { current: currentSlice };
             document.addEventListener('mousemove', onPointerMoveResizeLast);
             document.addEventListener('touchmove', onPointerMoveResizeLast, { passive: false });
@@ -532,11 +527,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function onPointerUpResize() {
         if (!currentlyDraggedHandle) return;
-        // Check which type of move listener was attached based on currentlyDraggedSliceData
-        if (currentlyDraggedSliceData && currentlyDraggedSliceData.next) { // Intermediate resize
+        if (currentlyDraggedSliceData && currentlyDraggedSliceData.next) { 
             document.removeEventListener('mousemove', onPointerMoveResizeIntermediate);
             document.removeEventListener('touchmove', onPointerMoveResizeIntermediate);
-        } else if (currentlyDraggedSliceData && !currentlyDraggedSliceData.next) { // Last slice resize
+        } else if (currentlyDraggedSliceData && !currentlyDraggedSliceData.next) { 
             document.removeEventListener('mousemove', onPointerMoveResizeLast);
             document.removeEventListener('touchmove', onPointerMoveResizeLast);
         }

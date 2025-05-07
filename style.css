@@ -4,42 +4,43 @@ body {
     background-color: #f4f7f6;
     color: #333;
     display: flex;
-    flex-direction: column; /* Para centralizar o app container verticalmente se necessário */
-    align-items: center; /* Centraliza o app container horizontalmente */
-    padding: 20px 10px; /* Adicionado padding lateral para mobile */
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 10px;
     min-height: 100vh;
     box-sizing: border-box;
 }
 
 .app-container {
     background-color: #fff;
-    padding: 20px; /* Reduzido padding para mobile */
+    padding: 20px;
     border-radius: 10px;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-    width: 100%;    /* Ocupa toda a largura disponível */
-    max-width: 900px; /* Mantém um máximo para telas maiores */
+    width: 100%;
+    max-width: 900px;
     box-sizing: border-box;
 }
 
-h1 { /* Ajustado h1 para mobile */
+h1 {
     color: #2c3e50;
     text-align: center;
     margin-bottom: 20px;
-    font-size: 1.8em; /* Reduzido para mobile */
+    font-size: 1.8em;
 }
-h2 { /* Ajustado h2 para mobile */
+h2 {
     color: #2c3e50;
     text-align: center;
     margin-bottom: 15px;
-    font-size: 1.4em; /* Reduzido para mobile */
+    font-size: 1.4em;
+    margin-right: auto; /* Empurra o botão para a direita */
 }
 
 
 .budget-controls {
     display: flex;
-    flex-direction: column; /* Empilha em mobile por padrão */
-    gap: 15px; /* Espaço entre os itens empilhados */
-    align-items: stretch; /* Faz os itens esticarem */
+    flex-direction: column;
+    gap: 15px;
+    align-items: stretch;
     margin-bottom: 25px;
     padding: 15px;
     background-color: #ecf0f1;
@@ -50,12 +51,12 @@ h2 { /* Ajustado h2 para mobile */
     background-color: #3498db;
     color: white;
     border: none;
-    padding: 12px 18px; /* Aumentado padding para melhor toque */
+    padding: 12px 18px;
     border-radius: 5px;
     cursor: pointer;
     font-size: 1em;
     transition: background-color 0.3s ease;
-    width: 100%; /* Ocupa toda a largura no modo empilhado */
+    width: 100%;
 }
 
 #addSliceButton:hover {
@@ -65,11 +66,11 @@ h2 { /* Ajustado h2 para mobile */
 .total-budget-container {
     display: flex;
     align-items: center;
-    justify-content: space-between; /* Espaça label e input */
-    width: 100%; /* Ocupa toda a largura no modo empilhado */
+    justify-content: space-between;
+    width: 100%;
 }
 .total-budget-container label {
-    margin-right: 5px; /* Reduzido margin */
+    margin-right: 5px;
     font-size: 0.95em;
 }
 
@@ -78,7 +79,7 @@ h2 { /* Ajustado h2 para mobile */
     border: 1px solid #bdc3c7;
     border-radius: 5px;
     font-size: 1em;
-    width: 120px; /* Aumentado um pouco para melhor usabilidade */
+    width: 120px;
     text-align: right;
 }
 
@@ -93,11 +94,15 @@ h2 { /* Ajustado h2 para mobile */
 .budget-slider {
     display: flex;
     width: 100%;
-    height: 45px; /* Reduzido altura para mobile */
+    height: 45px;
     background-color: #ecf0f1;
     border-radius: 5px;
     position: relative;
     cursor: default;
+    user-select: none; /* Prevenir seleção de texto durante o drag */
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
 }
 
 .slice {
@@ -107,12 +112,12 @@ h2 { /* Ajustado h2 para mobile */
     justify-content: center;
     position: relative;
     box-sizing: border-box;
-    border-right: 1px solid rgba(255, 255, 255, 0.8); /* Borda mais fina */
+    border-right: 1px solid rgba(255, 255, 255, 0.8);
     transition: background-color 0.3s ease, flex-basis 0.2s ease-out;
-    overflow: hidden; /* Para conter o caption */
+    overflow: hidden;
 }
 
-.slice:last-of-type { /* Garante que o último elemento visual no slider (seja slice ou unallocated) não tenha borda */
+.slice:last-of-type {
     border-right: none;
 }
 
@@ -125,30 +130,30 @@ h2 { /* Ajustado h2 para mobile */
     box-sizing: border-box;
     background-color: #e0e0e0;
     color: #555;
-    font-size: 0.75em; /* Reduzido para mobile */
+    font-size: 0.75em;
     text-align: center;
-    border-left: 1px dashed #c0c0c0; /* Borda mais fina */
+    border-left: 1px dashed #c0c0c0;
     transition: flex-basis 0.2s ease-out;
-    overflow: hidden; /* Para conter o caption */
+    overflow: hidden;
 }
 .unallocated-slice .slice-caption {
     color: #555;
     font-weight: normal;
     text-shadow: none;
-    padding: 0 3px; /* Padding menor */
+    padding: 0 3px;
 }
 
 
 .slice-tooltip {
     position: absolute;
-    bottom: 105%; /* Ajustado para não cortar em telas pequenas */
+    bottom: 105%;
     left: 50%;
     transform: translateX(-50%);
-    background-color: rgba(0, 0, 0, 0.85); /* Mais opaco */
+    background-color: rgba(0, 0, 0, 0.85);
     color: white;
-    padding: 4px 8px; /* Reduzido padding */
+    padding: 4px 8px;
     border-radius: 4px;
-    font-size: 0.8em; /* Reduzido */
+    font-size: 0.8em;
     white-space: nowrap;
     opacity: 0;
     visibility: hidden;
@@ -164,53 +169,80 @@ h2 { /* Ajustado h2 para mobile */
 
 .slice-caption {
     color: white;
-    font-size: 0.7em; /* Reduzido para mobile */
+    font-size: 0.7em;
     font-weight: bold;
-    text-shadow: 1px 1px 1px rgba(0,0,0,0.5); /* Sombra mais sutil */
+    text-shadow: 1px 1px 1px rgba(0,0,0,0.5);
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
-    padding: 0 4px; /* Reduzido padding */
+    padding: 0 4px;
     pointer-events: none;
-    line-height: 1.2; /* Para melhor centralização vertical */
+    line-height: 1.2;
 }
 
 
 .resize-handle {
-    width: 10px; /* Aumentado para melhor toque */
+    width: 12px; /* Aumentado para melhor área de toque */
     height: 100%;
     position: absolute;
-    right: -5px; /* Ajustado para centralizar a área de toque maior */
+    right: -6px; /* Ajustado para centralizar a área de toque maior */
     top: 0;
     cursor: col-resize;
     z-index: 10;
-    /* background-color: rgba(0,0,0,0.01); */ /* Para debug de área de toque */
+    /* background-color: rgba(255,0,0,0.1); /* Debug: Visualizar área de toque */
 }
 
 .slices-table-container {
     margin-top: 30px;
 }
 
-.table-scroll-wrapper { /* Novo wrapper para rolagem horizontal da tabela */
+.table-header-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0px; /* Ajustado para alinhar com a tabela */
+}
+
+.add-slice-table-btn {
+    background-color: #2ecc71; /* Verde */
+    color: white;
+    border: none;
+    border-radius: 50%; /* Circular */
+    width: 30px;
+    height: 30px;
+    font-size: 1.5em;
+    line-height: 30px; /* Centralizar o '+' */
+    text-align: center;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    padding: 0;
+    margin-left: 10px; /* Espaço do título h2 */
+}
+.add-slice-table-btn:hover {
+    background-color: #27ae60; /* Verde mais escuro */
+}
+
+
+.table-scroll-wrapper {
     width: 100%;
     overflow-x: auto;
-    -webkit-overflow-scrolling: touch; /* Rolagem suave em iOS */
+    -webkit-overflow-scrolling: touch;
 }
 
 #slicesTable {
     width: 100%;
-    min-width: 600px; /* Largura mínima para forçar rolagem se necessário, ajuste conforme seu conteúdo */
+    min-width: 580px; /* Ajustado para caber melhor os botões de ação */
     border-collapse: collapse;
     margin-top: 15px;
 }
 
 #slicesTable th, #slicesTable td {
     border: 1px solid #ddd;
-    padding: 8px 10px; /* Reduzido padding */
+    padding: 8px 10px;
     text-align: left;
     vertical-align: middle;
-    font-size: 0.9em; /* Reduzido para mobile */
-    white-space: nowrap; /* Evita quebra de linha dentro das células */
+    font-size: 0.9em;
+    white-space: nowrap;
 }
 
 #slicesTable th {
@@ -229,7 +261,7 @@ h2 { /* Ajustado h2 para mobile */
 
 .color-input-swatch {
     -webkit-appearance: none; -moz-appearance: none; appearance: none;
-    width: 22px; height: 22px; /* Reduzido */
+    width: 22px; height: 22px;
     padding: 0; border: 1px solid #ccc; border-radius: 50%;
     cursor: pointer; display: inline-block; vertical-align: middle;
     background-color: transparent;
@@ -240,9 +272,9 @@ h2 { /* Ajustado h2 para mobile */
 
 
 .slice-name-input {
-    width: 100%; /* Ocupa toda célula */
+    width: 100%;
     padding: 6px; border: 1px solid #ccc; border-radius: 4px;
-    box-sizing: border-box; font-size: 1em; /* Relativo ao td */
+    box-sizing: border-box; font-size: 1em;
 }
 .slice-name-input:focus {
     outline: none; border-color: #3498db;
@@ -250,9 +282,9 @@ h2 { /* Ajustado h2 para mobile */
 }
 
 .slice-amount-input {
-    width: 70px; /* Reduzido */
+    width: 70px;
     padding: 6px; border: 1px solid #ccc; border-radius: 4px;
-    box-sizing: border-box; text-align: right; font-size: 1em; /* Relativo ao td */
+    box-sizing: border-box; text-align: right; font-size: 1em;
 }
 .slice-amount-input:focus {
     outline: none; border-color: #3498db;
@@ -271,67 +303,36 @@ h2 { /* Ajustado h2 para mobile */
     margin-top: 15px; padding: 10px;
     background-color: #fdf7e3; border: 1px solid #f5e0a0;
     border-radius: 5px; text-align: center; font-weight: bold;
-    color: #c09853; font-size: 0.9em; /* Reduzido */
+    color: #c09853; font-size: 0.9em;
 }
 
-/* Ajustes de coluna da tabela para mobile (serão afetados pela rolagem) */
-.color-col { width: auto; min-width: 50px; } /* Permite encolher mas com mínimo */
-.name-col { width: auto; min-width: 150px; }
-.percentage-col { width: auto; min-width: 90px; text-align: right; }
-.amount-col { width: auto; min-width: 100px; text-align: right; }
-.actions-col { width: auto; min-width: 70px; text-align: center;}
+.color-col { width: auto; min-width: 45px; }
+.name-col { width: auto; min-width: 140px; }
+.percentage-col { width: auto; min-width: 80px; text-align: right; }
+.amount-col { width: auto; min-width: 90px; text-align: right; }
+.actions-col { width: auto; min-width: 65px; text-align: center;}
 
 #slicesTable td.percentage-col,
 #slicesTable td.amount-col { text-align: right; }
 #slicesTable td.actions-col { text-align: center; }
 #slicesTable td.color-col { text-align: center; }
 
-/* Media Query para telas maiores (tablets e desktops) */
 @media (min-width: 600px) {
-    .app-container {
-        padding: 25px; /* Restaura padding original */
-    }
-    h1 { font-size: 2.2em; } /* Restaura tamanho original */
-    h2 { font-size: 1.5em; } /* Restaura tamanho original */
-
+    .app-container { padding: 25px; }
+    h1 { font-size: 2.2em; }
+    h2 { font-size: 1.5em; }
     .budget-controls {
-        flex-direction: row; /* Lado a lado em telas maiores */
-        justify-content: space-between;
-        align-items: center;
+        flex-direction: row; justify-content: space-between; align-items: center;
     }
-    #addSliceButton {
-        width: auto; /* Largura automática */
-    }
-    .total-budget-container {
-        width: auto; /* Largura automática */
-        justify-content: flex-end; /* Alinha à direita */
-    }
-    .total-budget-container label {
-        margin-right: 8px; /* Restaura margin */
-        font-size: 1em;
-    }
-    .budget-slider {
-        height: 50px; /* Restaura altura original */
-    }
-    .unallocated-slice {
-        font-size: 0.8em; /* Restaura tamanho original */
-    }
-    .unallocated-slice .slice-caption {
-         padding: 0 5px;
-    }
-    .slice-caption {
-        font-size: 0.8em; /* Restaura tamanho original */
-        padding: 0 5px; /* Restaura padding original */
-    }
-    .slice-tooltip {
-        font-size: 0.85em; /* Restaura tamanho original */
-        padding: 5px 10px; /* Restaura padding original */
-    }
-     #slicesTable th, #slicesTable td {
-        font-size: 1em; /* Restaura tamanho original */
-        padding: 10px 12px; /* Restaura padding original */
-    }
-    .unallocated-info {
-        font-size: 1em; /* Restaura tamanho original */
-    }
+    #addSliceButton { width: auto; }
+    .total-budget-container { width: auto; justify-content: flex-end; }
+    .total-budget-container label { margin-right: 8px; font-size: 1em; }
+    .budget-slider { height: 50px; }
+    .unallocated-slice { font-size: 0.8em; }
+    .unallocated-slice .slice-caption { padding: 0 5px; }
+    .slice-caption { font-size: 0.8em; padding: 0 5px; }
+    .slice-tooltip { font-size: 0.85em; padding: 5px 10px; }
+    #slicesTable th, #slicesTable td { font-size: 1em; padding: 10px 12px; }
+    .unallocated-info { font-size: 1em; }
+    .add-slice-table-btn { width: 32px; height: 32px; line-height: 32px; font-size: 1.6em;}
 }

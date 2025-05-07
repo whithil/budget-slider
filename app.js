@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const budgetSlider = document.getElementById('budgetSlider');
     const slicesTableBody = document.getElementById('slicesTableBody');
     const addSliceButton = document.getElementById('addSliceButton');
+    const addSliceTableButton = document.getElementById('addSliceTableButton'); // New button
     const totalBudgetInput = document.getElementById('totalBudgetInput');
     const unallocatedPercentageDiv = document.getElementById('unallocatedPercentage');
 
@@ -14,17 +15,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // Drag State Variables
     let currentlyDraggedHandle = null;
     let currentlyDraggedSliceData = null;
-    let initialMouseX = 0;
+    let initialClientX = 0; // Use clientX for broader compatibility including touch
     let initialSlicePercentage = 0;
     let adjacentSlicePercentage = 0;
     let totalSliderWidth = 0;
 
-    const MIN_SLICE_PERCENTAGE = 0.5; // Minimum percentage a slice can be dragged to
+    const MIN_SLICE_PERCENTAGE = 0.5;
 
-    /**
-     * Generates a random RGB color string.
-     * @returns {string} CSS RGB color string
-     */
+    /** Generates a random RGB color string. */
     function generateRandomRGB() {
         const r = Math.floor(Math.random() * 220);
         const g = Math.floor(Math.random() * 220);
@@ -32,33 +30,25 @@ document.addEventListener('DOMContentLoaded', () => {
         return `rgb(${r}, ${g}, ${b})`;
     }
 
-    /**
-     * Saves the current application state to local storage.
-     * Uses keys with '_v2_5' for this version.
-     */
+    /** Saves state to local storage (version _v2_6). */
     function saveState() {
-        localStorage.setItem('budgetSlices_v2_5', JSON.stringify(slices));
-        localStorage.setItem('totalBudget_v2_5', totalBudget.toString());
+        localStorage.setItem('budgetSlices_v2_6', JSON.stringify(slices));
+        localStorage.setItem('totalBudget_v2_6', totalBudget.toString());
     }
 
-    /**
-     * Loads application state from local storage.
-     * Includes data sanitization for robustness.
-     */
+    /** Loads state from local storage with sanitization. */
     function loadState() {
-        const savedTotalBudget = localStorage.getItem('totalBudget_v2_5');
+        const savedTotalBudget = localStorage.getItem('totalBudget_v2_6');
         if (savedTotalBudget) {
             totalBudget = parseFloat(savedTotalBudget);
             totalBudgetInput.value = totalBudget;
         }
-
-        const savedSlices = localStorage.getItem('budgetSlices_v2_5');
+        const savedSlices = localStorage.getItem('budgetSlices_v2_6');
         if (savedSlices) {
             try {
                 let parsedSlices = JSON.parse(savedSlices);
                 if (Array.isArray(parsedSlices)) {
-                    let tempNextId = 0;
-                    const seenIds = new Set();
+                    let tempNextId = 0; const seenIds = new Set();
                     slices = parsedSlices.map(s => {
                         let currentId = (s && typeof s.id === 'number') ? s.id : -1;
                         if (currentId === -1 || seenIds.has(currentId)) {
@@ -76,33 +66,23 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                     nextSliceId = tempNextId;
                 } else { slices = []; }
-            } catch (e) {
-                console.error("Erro ao carregar fatias do localStorage (JSON inválido):", e);
-                slices = [];
-            }
-            if (slices.length === 0) { // Fallback if parsing failed or resulted in empty
+            } catch (e) { console.error("Erro ao carregar fatias:", e); slices = []; }
+            if (slices.length === 0) {
                 nextSliceId = 0;
                 addSlice('Mercado', 25, generateRandomRGB(), false);
                 addSlice('Contas Fixas', 20, generateRandomRGB(), false);
                 addSlice('Lazer', 10, generateRandomRGB(), false);
             }
-        } else { // No savedSlices, add default slices
+        } else {
             nextSliceId = 0;
             addSlice('Mercado', 25, generateRandomRGB(), false);
             addSlice('Contas Fixas', 20, generateRandomRGB(), false);
             addSlice('Lazer', 10, generateRandomRGB(), false);
         }
-        normalizePercentages();
-        renderApp();
+        normalizePercentages(); renderApp();
     }
 
-    /**
-     * Adds a new slice to the budget.
-     * @param {string} name - Initial name.
-     * @param {number} percentage - Initial percentage.
-     * @param {string} [color] - Optional color.
-     * @param {boolean} [doRender=true] - Whether to re-render immediately.
-     */
+    /** Adds a new slice. */
     function addSlice(name = 'Nova Categoria', percentage = 5, color = generateRandomRGB(), doRender = true) {
         percentage = Math.max(0, percentage);
         const newSlice = { id: nextSliceId++, name: `${name}`, percentage: percentage, color: color };
@@ -110,25 +90,25 @@ document.addEventListener('DOMContentLoaded', () => {
         if (doRender) { normalizePercentages(); renderApp(); }
     }
 
-    /** Removes a slice by its ID. */
+    /** Removes a slice. */
     function removeSlice(sliceId) {
         slices = slices.filter(slice => slice.id !== sliceId);
         normalizePercentages(); renderApp();
     }
 
-    /** Updates the name of a slice. */
+    /** Updates slice name. */
     function updateSliceName(sliceId, newName) {
         const slice = slices.find(s => s.id === sliceId);
         if (slice) { slice.name = newName; renderApp(); }
     }
 
-    /** Updates the color of a slice. */
+    /** Updates slice color. */
     function updateSliceColor(sliceId, newColor) {
         const slice = slices.find(s => s.id === sliceId);
         if (slice) { slice.color = newColor; renderApp(); }
     }
 
-    /** Updates a slice's percentage based on a new amount from the table. */
+    /** Updates slice percentage by amount. */
     function updateSliceByAmount(sliceId, newAmount) {
         const slice = slices.find(s => s.id === sliceId);
         if (slice) {
@@ -137,13 +117,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 slice.percentage = parseFloat(Math.max(0, newPercentage).toFixed(2));
             } else {
                 slice.percentage = (newAmount > 0 && totalBudget <= 0) ? 0 : 0;
-                if (newAmount > 0 && totalBudget <= 0) console.warn("Orçamento total é 0. Não é possível calcular a porcentagem da fatia com base no valor.");
+                if (newAmount > 0 && totalBudget <= 0) console.warn("Orçamento total é 0.");
             }
             normalizePercentages(); renderApp();
         }
     }
 
-    /** Updates the total budget value. */
+    /** Updates total budget. */
     function updateTotalBudget() {
         const newTotal = parseFloat(totalBudgetInput.value);
         totalBudget = (!isNaN(newTotal) && newTotal >= 0) ? newTotal : totalBudget;
@@ -151,21 +131,18 @@ document.addEventListener('DOMContentLoaded', () => {
         normalizePercentages(); renderApp();
     }
 
-    /** Normalizes slice percentages. Ensures no slice is negative. If total > 100%, scales down. Allows total < 100%. */
+    /** Normalizes percentages: ensures non-negative, scales if >100%, allows <100%. */
     function normalizePercentages() {
         if (slices.length === 0) return;
         slices.forEach(slice => {
             slice.percentage = (typeof slice.percentage === 'number' && !isNaN(slice.percentage) && slice.percentage >= 0) ? slice.percentage : 0;
         });
-
         let currentTotalPercentage = slices.reduce((sum, s) => sum + s.percentage, 0);
-
         if (currentTotalPercentage > 100) {
             const factor = 100 / currentTotalPercentage;
             slices.forEach(slice => { slice.percentage = parseFloat((slice.percentage * factor).toFixed(2)); });
             currentTotalPercentage = slices.reduce((sum, s) => sum + s.percentage, 0);
         }
-
         if (currentTotalPercentage > 99.99 && Math.abs(100 - currentTotalPercentage) > 0.001) {
             let diffTo100 = 100 - currentTotalPercentage;
             if (slices.length > 0) {
@@ -179,50 +156,51 @@ document.addEventListener('DOMContentLoaded', () => {
         slices.forEach(s => { if (s.percentage < 0) s.percentage = 0; });
     }
 
-    /** Renders the budget slider UI, including the unallocated slice. */
+    /** Renders the slider with an unallocated segment. */
     function renderSlider() {
         budgetSlider.innerHTML = '';
         totalSliderWidth = budgetSlider.offsetWidth;
         let totalAllocatedPercentage = 0;
-
         slices.forEach((slice, index) => {
             const percentageValue = (typeof slice.percentage === 'number' && !isNaN(slice.percentage)) ? slice.percentage : 0;
             totalAllocatedPercentage += percentageValue;
-
             const sliceDiv = document.createElement('div');
             sliceDiv.className = 'slice';
             sliceDiv.style.backgroundColor = slice.color;
             sliceDiv.style.flexBasis = `${Math.max(0, percentageValue)}%`;
             sliceDiv.dataset.id = slice.id;
-
             const captionDiv = document.createElement('div');
             captionDiv.className = 'slice-caption';
             const amount = (percentageValue / 100) * totalBudget;
             captionDiv.textContent = `${slice.name} (${percentageValue.toFixed(1)}%)`;
             sliceDiv.appendChild(captionDiv);
-
             const tooltipDiv = document.createElement('div');
             tooltipDiv.className = 'slice-tooltip';
             tooltipDiv.textContent = `${slice.name}: ${percentageValue.toFixed(2)}% (R$${amount.toFixed(2)})`;
             sliceDiv.appendChild(tooltipDiv);
+
+            // Common function to add resize handle listeners
+            const addResizeListeners = (handleElement) => {
+                handleElement.addEventListener('mousedown', onPointerDownResize);
+                handleElement.addEventListener('touchstart', onPointerDownResize, { passive: false }); // passive: false to allow preventDefault
+            };
 
             if (index < slices.length - 1) {
                 const resizeHandle = document.createElement('div');
                 resizeHandle.className = 'resize-handle intermediate-resize-handle';
                 resizeHandle.dataset.sliceIndex = index;
                 sliceDiv.appendChild(resizeHandle);
-                resizeHandle.addEventListener('mousedown', onMouseDownOnResizeHandle);
+                addResizeListeners(resizeHandle);
             }
             if (index === slices.length - 1 && slices.length > 0) {
                 const lastResizeHandle = document.createElement('div');
                 lastResizeHandle.className = 'resize-handle last-slice-resize-handle';
                 lastResizeHandle.dataset.sliceIndex = index;
                 sliceDiv.appendChild(lastResizeHandle);
-                lastResizeHandle.addEventListener('mousedown', onMouseDownOnLastSliceResizeHandle);
+                addResizeListeners(lastResizeHandle);
             }
             budgetSlider.appendChild(sliceDiv);
         });
-
         const unallocatedPercentage = 100 - totalAllocatedPercentage;
         if (unallocatedPercentage > 0.009) {
             const unallocatedSliceDiv = document.createElement('div');
@@ -248,57 +226,49 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    /** Renders the budget breakdown table UI. */
+    /** Renders the table. */
     function renderTable() {
         slicesTableBody.innerHTML = '';
         slices.forEach(slice => {
-            const row = slicesTableBody.insertRow();
-            row.dataset.id = slice.id;
+            const row = slicesTableBody.insertRow(); row.dataset.id = slice.id;
             const percentageValue = (typeof slice.percentage === 'number' && !isNaN(slice.percentage)) ? slice.percentage : 0;
-
             const colorCell = row.insertCell(); colorCell.className = 'color-col';
             const colorInput = document.createElement('input'); colorInput.type = 'color';
             colorInput.className = 'color-input-swatch'; colorInput.value = slice.color.startsWith('rgb') ? rgbToHex(slice.color) : slice.color;
             colorInput.addEventListener('input', (e) => updateSliceColor(slice.id, e.target.value));
             colorCell.appendChild(colorInput);
-
             const nameCell = row.insertCell();
             const nameInput = document.createElement('input'); nameInput.type = 'text';
             nameInput.className = 'slice-name-input'; nameInput.value = slice.name;
             nameInput.addEventListener('change', (e) => updateSliceName(slice.id, e.target.value));
             nameCell.appendChild(nameInput);
-
             const percentageCell = row.insertCell(); percentageCell.className = 'percentage-col';
             percentageCell.textContent = `${percentageValue.toFixed(2)}%`;
-
             const amountCell = row.insertCell(); amountCell.className = 'amount-col';
             const amountInput = document.createElement('input'); amountInput.type = 'number';
             amountInput.className = 'slice-amount-input'; amountInput.value = ((percentageValue / 100) * totalBudget).toFixed(2);
             amountInput.min = "0"; amountInput.step = "0.01";
             amountInput.addEventListener('change', (e) => updateSliceByAmount(slice.id, parseFloat(e.target.value)));
             amountCell.appendChild(amountInput);
-
             const actionsCell = row.insertCell(); actionsCell.className = 'actions-col';
             const deleteBtn = document.createElement('button'); deleteBtn.className = 'delete-slice-btn';
             deleteBtn.textContent = 'Excluir'; deleteBtn.addEventListener('click', () => removeSlice(slice.id));
             actionsCell.appendChild(deleteBtn);
         });
-
         const currentTotalAllocatedPercentage = slices.reduce((sum, s) => sum + ((typeof s.percentage === 'number' && !isNaN(s.percentage)) ? s.percentage : 0), 0);
         const unallocatedPercentageValue = 100 - currentTotalAllocatedPercentage;
         const unallocatedAmount = (unallocatedPercentageValue / 100) * totalBudget;
-
         if (Math.abs(unallocatedPercentageValue) < 0.01 && currentTotalAllocatedPercentage >= 99.99) {
             unallocatedPercentageDiv.textContent = 'Orçamento totalmente alocado.';
             unallocatedPercentageDiv.style.color = '#27ae60';
             unallocatedPercentageDiv.style.backgroundColor = '#e9f7ef';
             unallocatedPercentageDiv.style.borderColor = '#a7d7c5';
         } else if (currentTotalAllocatedPercentage > 100.009) {
-            unallocatedPercentageDiv.textContent = `Superalocado em: ${(currentTotalAllocatedPercentage - 100).toFixed(2)}% (R$${((currentTotalAllocatedPercentage - 100)/100 * totalBudget).toFixed(2)})`;
+            unallocatedPercentageDiv.textContent = `Superalocado: ${(currentTotalAllocatedPercentage - 100).toFixed(2)}% (R$${((currentTotalAllocatedPercentage - 100)/100 * totalBudget).toFixed(2)})`;
             unallocatedPercentageDiv.style.color = '#e74c3c';
             unallocatedPercentageDiv.style.backgroundColor = '#fdedec';
             unallocatedPercentageDiv.style.borderColor = '#f5b7b1';
-        } else { // unallocatedPercentageValue >= 0.01
+        } else {
             unallocatedPercentageDiv.textContent = `Não alocado: ${unallocatedPercentageValue.toFixed(2)}% (R$${unallocatedAmount.toFixed(2)})`;
             unallocatedPercentageDiv.style.color = '#c09853';
             unallocatedPercentageDiv.style.backgroundColor = '#fdf7e3';
@@ -306,7 +276,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    /** Converts RGB to HEX. @param {string} rgb - RGB string. @returns {string} HEX string. */
+    /** Converts RGB to HEX. */
     function rgbToHex(rgb) {
         if (!rgb || rgb.startsWith('#')) return rgb || '#000000';
         let sep = rgb.indexOf(",") > -1 ? "," : " "; rgb = rgb.substr(4).split(")")[0].split(sep);
@@ -315,25 +285,43 @@ document.addEventListener('DOMContentLoaded', () => {
         return "#" + r + g + b;
     }
 
-    // --- Intermediate Slice Resize Handle Logic ---
-    function onMouseDownOnResizeHandle(e) {
-        e.preventDefault(); currentlyDraggedHandle = e.target;
+    // --- Unified Pointer Down for Resize Handles ---
+    function onPointerDownResize(e) {
+        if (e.type === 'touchstart') e.preventDefault(); // Prevent scrolling/zooming on touch
+        currentlyDraggedHandle = e.target;
         const sliceIndex = parseInt(currentlyDraggedHandle.dataset.sliceIndex);
-        const currentSlice = slices[sliceIndex]; const nextSlice = slices[sliceIndex + 1];
-        if (!currentSlice || !nextSlice) return;
+        const currentSlice = slices[sliceIndex];
+        if (!currentSlice) return;
+
         currentSlice.percentage = (typeof currentSlice.percentage === 'number' && !isNaN(currentSlice.percentage)) ? currentSlice.percentage : 0;
-        nextSlice.percentage = (typeof nextSlice.percentage === 'number' && !isNaN(nextSlice.percentage)) ? nextSlice.percentage : 0;
-        currentlyDraggedSliceData = { current: currentSlice, next: nextSlice };
-        initialMouseX = e.clientX; totalSliderWidth = budgetSlider.offsetWidth;
-        initialSlicePercentage = currentSlice.percentage; adjacentSlicePercentage = nextSlice.percentage;
-        document.addEventListener('mousemove', onMouseMoveResize);
-        document.addEventListener('mouseup', onMouseUpResizeCommon);
+        initialClientX = (e.type === 'touchstart') ? e.touches[0].clientX : e.clientX;
+        totalSliderWidth = budgetSlider.offsetWidth;
+        initialSlicePercentage = currentSlice.percentage;
+
+        if (currentlyDraggedHandle.classList.contains('intermediate-resize-handle')) {
+            const nextSlice = slices[sliceIndex + 1];
+            if (!nextSlice) return;
+            nextSlice.percentage = (typeof nextSlice.percentage === 'number' && !isNaN(nextSlice.percentage)) ? nextSlice.percentage : 0;
+            currentlyDraggedSliceData = { current: currentSlice, next: nextSlice };
+            adjacentSlicePercentage = nextSlice.percentage;
+            document.addEventListener('mousemove', onPointerMoveResizeIntermediate);
+            document.addEventListener('touchmove', onPointerMoveResizeIntermediate, { passive: false });
+        } else if (currentlyDraggedHandle.classList.contains('last-slice-resize-handle')) {
+            currentlyDraggedSliceData = { current: currentSlice };
+            document.addEventListener('mousemove', onPointerMoveResizeLast);
+            document.addEventListener('touchmove', onPointerMoveResizeLast, { passive: false });
+        }
+        document.addEventListener('mouseup', onPointerUpResize);
+        document.addEventListener('touchend', onPointerUpResize);
     }
 
-    function onMouseMoveResize(e) {
+    // --- Pointer Move for Intermediate Slice Resize ---
+    function onPointerMoveResizeIntermediate(e) {
         if (!currentlyDraggedHandle || !currentlyDraggedSliceData || !currentlyDraggedSliceData.next) return;
-        e.preventDefault();
-        const dx = e.clientX - initialMouseX; const percentageChange = (dx / totalSliderWidth) * 100;
+        if (e.type === 'touchmove') e.preventDefault();
+        const currentClientX = (e.type === 'touchmove') ? e.touches[0].clientX : e.clientX;
+        const dx = currentClientX - initialClientX;
+        const percentageChange = (dx / totalSliderWidth) * 100;
         let newCurrentSlicePercentage = initialSlicePercentage + percentageChange;
         let newAdjacentSlicePercentage = adjacentSlicePercentage - percentageChange;
         const combinedInitialPercentage = initialSlicePercentage + adjacentSlicePercentage;
@@ -352,48 +340,41 @@ document.addEventListener('DOMContentLoaded', () => {
         renderSlider(); renderTable();
     }
 
-    // --- Last Slice Resize Handle Logic ---
-    function onMouseDownOnLastSliceResizeHandle(e) {
-        e.preventDefault(); currentlyDraggedHandle = e.target;
-        const sliceIndex = parseInt(currentlyDraggedHandle.dataset.sliceIndex);
-        const currentSlice = slices[sliceIndex]; if (!currentSlice) return;
-        currentSlice.percentage = (typeof currentSlice.percentage === 'number' && !isNaN(currentSlice.percentage)) ? currentSlice.percentage : 0;
-        currentlyDraggedSliceData = { current: currentSlice };
-        initialMouseX = e.clientX; totalSliderWidth = budgetSlider.offsetWidth;
-        initialSlicePercentage = currentSlice.percentage;
-        document.addEventListener('mousemove', onMouseMoveLastSliceResize);
-        document.addEventListener('mouseup', onMouseUpResizeCommon);
-    }
-
-    function onMouseMoveLastSliceResize(e) {
+    // --- Pointer Move for Last Slice Resize ---
+    function onPointerMoveResizeLast(e) {
         if (!currentlyDraggedHandle || !currentlyDraggedSliceData || currentlyDraggedSliceData.next) return;
-        e.preventDefault();
-        const dx = e.clientX - initialMouseX; const percentageChange = (dx / totalSliderWidth) * 100;
+        if (e.type === 'touchmove') e.preventDefault();
+        const currentClientX = (e.type === 'touchmove') ? e.touches[0].clientX : e.clientX;
+        const dx = currentClientX - initialClientX;
+        const percentageChange = (dx / totalSliderWidth) * 100;
         let newCurrentSlicePercentage = initialSlicePercentage + percentageChange;
         newCurrentSlicePercentage = Math.max(MIN_SLICE_PERCENTAGE, newCurrentSlicePercentage);
         currentlyDraggedSliceData.current.percentage = parseFloat(newCurrentSlicePercentage.toFixed(2));
         renderSlider(); renderTable();
     }
 
-    // --- Common Mouse Up for All Resize Operations ---
-    function onMouseUpResizeCommon() {
+    // --- Unified Pointer Up for All Resize Operations ---
+    function onPointerUpResize() {
         if (!currentlyDraggedHandle) return;
-        if (currentlyDraggedHandle.classList.contains('last-slice-resize-handle')) {
-            document.removeEventListener('mousemove', onMouseMoveLastSliceResize);
-        } else {
-            document.removeEventListener('mousemove', onMouseMoveResize);
+        if (currentlyDraggedHandle.classList.contains('intermediate-resize-handle')) {
+            document.removeEventListener('mousemove', onPointerMoveResizeIntermediate);
+            document.removeEventListener('touchmove', onPointerMoveResizeIntermediate);
+        } else if (currentlyDraggedHandle.classList.contains('last-slice-resize-handle')) {
+            document.removeEventListener('mousemove', onPointerMoveResizeLast);
+            document.removeEventListener('touchmove', onPointerMoveResizeLast);
         }
-        document.removeEventListener('mouseup', onMouseUpResizeCommon);
+        document.removeEventListener('mouseup', onPointerUpResize);
+        document.removeEventListener('touchend', onPointerUpResize);
         normalizePercentages(); renderApp();
         currentlyDraggedHandle = null; currentlyDraggedSliceData = null;
-        initialMouseX = 0; initialSlicePercentage = 0; adjacentSlicePercentage = 0;
+        initialClientX = 0; initialSlicePercentage = 0; adjacentSlicePercentage = 0;
     }
 
     /** Central function to re-render UI and save state. */
     function renderApp() { renderSlider(); renderTable(); saveState(); }
 
     // Event Listeners Setup
-    addSliceButton.addEventListener('click', () => {
+    const commonAddSliceAction = () => {
         let initialNewPercentage = 5;
         const totalCurrentPercentage = slices.reduce((sum, s) => sum + ((typeof s.percentage === 'number' && !isNaN(s.percentage)) ? s.percentage : 0), 0);
         if (slices.length === 0) initialNewPercentage = 25;
@@ -401,7 +382,10 @@ document.addEventListener('DOMContentLoaded', () => {
             initialNewPercentage = Math.max(0, 100 - totalCurrentPercentage);
         } else if (totalCurrentPercentage >= 100) initialNewPercentage = 0;
         addSlice('Nova Categoria', initialNewPercentage);
-    });
+    };
+    addSliceButton.addEventListener('click', commonAddSliceAction);
+    addSliceTableButton.addEventListener('click', commonAddSliceAction); // Listener for the new button
+
     totalBudgetInput.addEventListener('change', updateTotalBudget);
     totalBudgetInput.addEventListener('keyup', (e) => {
         if (e.key === 'Enter' || e.keyCode === 13 || totalBudgetInput.value === '') updateTotalBudget();

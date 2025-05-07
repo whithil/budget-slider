@@ -3,19 +3,16 @@ body {
     margin: 0;
     background-color: #f4f7f6;
     color: #333;
-    /* display: flex; Retirado para permitir sidebar e conteúdo principal fluírem normalmente */
-    /* flex-direction: column; */
-    /* align-items: center; */
-    padding: 0; /* Removido padding do body, será aplicado ao app-container */
+    padding: 0;
     min-height: 100vh;
     box-sizing: border-box;
-    transition: margin-left .3s; /* Para animar o conteúdo principal quando a sidebar abrir */
+    transition: margin-left .3s;
 }
 
 .menu-button {
     font-size: 24px;
     padding: 10px 15px;
-    position: fixed; /* Ou absolute, dependendo do fluxo desejado */
+    position: fixed;
     top: 10px;
     left: 10px;
     background-color: #34495e;
@@ -23,8 +20,9 @@ body {
     border: none;
     border-radius: 5px;
     cursor: pointer;
-    z-index: 1002; /* Acima da sidebar e do conteúdo */
+    z-index: 1002;
     box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    transition: margin-left .3s; /* Para acompanhar o push do conteúdo */
 }
 .menu-button:hover {
     background-color: #2c3e50;
@@ -32,20 +30,20 @@ body {
 
 .sidebar {
     height: 100%;
-    width: 0; /* Começa fechada */
+    width: 0;
     position: fixed;
-    z-index: 1001; /* Abaixo do botão de menu, mas acima do conteúdo */
+    z-index: 1001;
     top: 0;
     left: 0;
-    background-color: #2c3e50; /* Cor de fundo escura para a sidebar */
-    overflow-x: hidden; /* Desabilita rolagem horizontal */
-    transition: 0.3s; /* Animação de abertura/fechamento */
-    padding-top: 60px; /* Espaço para o botão de fechar */
-    color: #f1f1f1; /* Cor do texto na sidebar */
+    background-color: #2c3e50;
+    overflow-x: hidden;
+    transition: 0.3s;
+    padding-top: 60px;
+    color: #f1f1f1;
 }
 
 .sidebar.open {
-    width: 280px; /* Largura da sidebar quando aberta */
+    width: 280px;
 }
 
 .sidebar h3 {
@@ -107,30 +105,37 @@ body {
 }
 
 #savedStatesList li {
-    padding: 10px 15px;
+    padding: 8px 15px; /* Reduzido padding vertical */
     border-bottom: 1px solid #4a627a;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 0.95em;
+    font-size: 0.9em; /* Reduzido tamanho da fonte */
 }
 #savedStatesList li:last-child {
     border-bottom: none;
 }
 #savedStatesList .state-name {
     flex-grow: 1;
-    margin-right: 10px;
-    word-break: break-all; /* Evita que nomes longos quebrem o layout */
+    margin-right: 5px; /* Reduzido margin */
+    word-break: break-all;
+    width: 100%; /* User tweak */
+}
+#savedStatesList .state-actions {
+    display: flex; /* Para alinhar botões horizontalmente */
+    align-items: center;
+    text-align: end; /* User tweak */
+    flex-shrink: 0; /* Impede que os botões encolham */
 }
 #savedStatesList .state-actions button {
     background: none;
     border: 1px solid #7f8c8d;
     color: #f1f1f1;
-    padding: 5px 8px;
-    margin-left: 5px;
+    padding: 4px 6px; /* Reduzido padding */
+    margin-left: 4px; /* Reduzido margin */
     border-radius: 4px;
     cursor: pointer;
-    font-size: 0.8em;
+    font-size: 0.75em; /* Reduzido tamanho da fonte */
 }
 #savedStatesList .state-actions button.load-btn { border-color: #2ecc71; color: #2ecc71;}
 #savedStatesList .state-actions button.load-btn:hover { background-color: #2ecc71; color: white;}
@@ -138,6 +143,8 @@ body {
 #savedStatesList .state-actions button.rename-btn:hover { background-color: #f39c12; color: white;}
 #savedStatesList .state-actions button.delete-btn { border-color: #e74c3c; color: #e74c3c;}
 #savedStatesList .state-actions button.delete-btn:hover { background-color: #e74c3c; color: white;}
+#savedStatesList .state-actions button.share-btn { border-color: #9b59b6; color: #9b59b6;} /* Roxo para compartilhar */
+#savedStatesList .state-actions button.share-btn:hover { background-color: #9b59b6; color: white;}
 
 
 .app-container {
@@ -145,27 +152,23 @@ body {
     padding: 20px;
     border-radius: 10px;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-    width: calc(100% - 40px); /* Ajusta a largura considerando o padding do body */
+    width: calc(100% - 40px);
     max-width: 900px;
     box-sizing: border-box;
-    margin: 20px auto; /* Centraliza e adiciona margem superior/inferior */
-    transition: margin-left .3s; /* Para animar quando a sidebar abrir */
+    margin: 20px auto;
+    transition: margin-left .3s;
 }
-/* Quando a sidebar estiver aberta, empurra o conteúdo principal */
+
 body.sidebar-open .app-container {
-    margin-left: 290px; /* Largura da sidebar + um pouco de espaço */
+    margin-left: 290px;
 }
 body.sidebar-open #menuButton {
-    margin-left: 280px; /* Empurra o botão de menu também */
+    margin-left: 280px;
 }
 
 
-h1 {
-    color: #2c3e50; text-align: center; margin-bottom: 20px; font-size: 1.8em;
-}
-h2 {
-    color: #2c3e50; text-align: center; margin-bottom: 15px; font-size: 1.4em; margin-right: auto;
-}
+h1 { color: #2c3e50; text-align: center; margin-bottom: 20px; font-size: 1.8em; }
+h2 { color: #2c3e50; text-align: center; margin-bottom: 15px; font-size: 1.4em; margin-right: auto; }
 
 .budget-controls {
     display: flex; flex-direction: column; gap: 15px; align-items: stretch;
@@ -176,19 +179,14 @@ h2 {
     border-radius: 5px; cursor: pointer; font-size: 1em; transition: background-color 0.3s ease; width: 100%;
 }
 #addSliceButton:hover { background-color: #2980b9; }
-.total-budget-container {
-    display: flex; align-items: center; justify-content: space-between; width: 100%;
-}
+.total-budget-container { display: flex; align-items: center; justify-content: space-between; width: 100%; }
 .total-budget-container label { margin-right: 5px; font-size: 0.95em; }
 #totalBudgetInput {
     padding: 10px; border: 1px solid #bdc3c7; border-radius: 5px;
     font-size: 1em; width: 120px; text-align: right;
 }
 
-.slider-wrapper {
-    margin-bottom: 30px; padding: 10px; background-color: #dde4e7;
-    border-radius: 5px; overflow: hidden;
-}
+.slider-wrapper { margin-bottom: 30px; padding: 10px; background-color: #dde4e7; border-radius: 5px; overflow: hidden; }
 .budget-slider {
     display: flex; width: 100%; height: 45px; background-color: #ecf0f1;
     border-radius: 5px; position: relative; cursor: default; user-select: none;
@@ -222,15 +220,10 @@ h2 {
     pointer-events: none; line-height: 1.2;
 }
 
-.resize-handle {
-    width: 12px; height: 100%; position: absolute; right: -6px; top: 0;
-    cursor: col-resize; z-index: 10;
-}
+.resize-handle { width: 12px; height: 100%; position: absolute; right: -6px; top: 0; cursor: col-resize; z-index: 10; }
 
 .slices-table-container { margin-top: 30px; }
-.table-header-controls {
-    display: flex; justify-content: space-between; align-items: center; margin-bottom: 0px;
-}
+.table-header-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0px; }
 .add-slice-table-btn {
     background-color: #2ecc71; color: white; border: none; border-radius: 50%;
     width: 30px; height: 30px; font-size: 1.5em; line-height: 30px;
@@ -240,9 +233,7 @@ h2 {
 .add-slice-table-btn:hover { background-color: #27ae60; }
 
 .table-scroll-wrapper { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-#slicesTable {
-    width: 100%; min-width: 580px; border-collapse: collapse; margin-top: 15px;
-}
+#slicesTable { width: 100%; min-width: 580px; border-collapse: collapse; margin-top: 15px; }
 #slicesTable th, #slicesTable td {
     border: 1px solid #ddd; padding: 8px 10px; text-align: left; vertical-align: middle;
     font-size: 0.9em; white-space: nowrap;
@@ -285,26 +276,17 @@ h2 {
 .name-col { width: auto; min-width: 140px; }
 .percentage-col { width: auto; min-width: 80px; text-align: right; }
 .amount-col { width: auto; min-width: 90px; text-align: right; }
-.actions-col { width: auto; min-width: 65px; text-align: center;}
+.actions-col { width: auto; min-width: 70px; text-align: center;} /* Ajustado para acomodar 3 botões */
 
 #slicesTable td.percentage-col, #slicesTable td.amount-col { text-align: right; }
 #slicesTable td.actions-col { text-align: center; }
 #slicesTable td.color-col { text-align: center; }
 
 @media (min-width: 600px) {
-    .app-container { padding: 25px; margin-left: auto; /* Reset margin for larger screens if sidebar is not open */ }
-    body.sidebar-open .app-container {
-        margin-left: 290px; /* Adjust based on sidebar width */
-    }
-    /* Ensure menu button is not pushed if sidebar is not open on larger screens */
-    #menuButton {
-        transition: margin-left .3s;
-    }
-    body:not(.sidebar-open) #menuButton {
-        margin-left: 0;
-    }
-
-
+    .app-container { padding: 25px; margin-left: auto; }
+    body.sidebar-open .app-container { margin-left: 290px; }
+    #menuButton { transition: margin-left .3s; }
+    body:not(.sidebar-open) #menuButton { margin-left: 0; }
     h1 { font-size: 2.2em; } h2 { font-size: 1.5em; }
     .budget-controls { flex-direction: row; justify-content: space-between; align-items: center; }
     #addSliceButton { width: auto; }
@@ -318,4 +300,6 @@ h2 {
     #slicesTable th, #slicesTable td { font-size: 1em; padding: 10px 12px; }
     .unallocated-info { font-size: 1em; }
     .add-slice-table-btn { width: 32px; height: 32px; line-height: 32px; font-size: 1.6em;}
+    #savedStatesList li { font-size: 0.95em; padding: 10px 15px; } /* Restaura padding e fonte para desktop */
+    #savedStatesList .state-actions button { font-size: 0.8em; padding: 5px 8px; margin-left: 5px;}
 }

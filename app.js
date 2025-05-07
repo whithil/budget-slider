@@ -11,17 +11,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const menuButton = document.getElementById('menuButton');
     const closeMenuButton = document.getElementById('closeMenuButton');
     const sidebar = document.getElementById('sidebar');
-    const appContainer = document.getElementById('appContainer'); // Main content area
     const newStateNameInput = document.getElementById('newStateNameInput');
     const saveNewStateButton = document.getElementById('saveNewStateButton');
     const savedStatesListUI = document.getElementById('savedStatesList');
 
-
     // Application State
-    let slices = []; // Current working slices
-    let totalBudget = parseFloat(totalBudgetInput.value) || 1000; // Current working total budget
-    let nextSliceId = 0; // For current working slices
-    let allSavedStates = []; // Array to hold all named save states {id, name, slices, totalBudget}
+    let slices = [];
+    let totalBudget = parseFloat(totalBudgetInput.value) || 1000;
+    let nextSliceId = 0;
+    let allSavedStates = [];
 
     // Drag State Variables
     let currentlyDraggedHandle = null;
@@ -32,6 +30,10 @@ document.addEventListener('DOMContentLoaded', () => {
     let totalSliderWidth = 0;
 
     const MIN_SLICE_PERCENTAGE = 0.5;
+    const CURRENT_STATE_LS_KEY_SLICES = 'budgetSlices_v2_8';
+    const CURRENT_STATE_LS_KEY_BUDGET = 'totalBudget_v2_8';
+    const ALL_STATES_LS_KEY = 'budgetManager_allStates_v2_8';
+
 
     /** Generates a random RGB color string. */
     function generateRandomRGB() {
@@ -42,26 +44,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- State Management for CURRENT WORKING SET ---
-    /** Saves the current working state (slices and totalBudget) to local storage. */
     function saveCurrentWorkingState() {
-        localStorage.setItem('budgetSlices_v2_7', JSON.stringify(slices));
-        localStorage.setItem('totalBudget_v2_7', totalBudget.toString());
+        localStorage.setItem(CURRENT_STATE_LS_KEY_SLICES, JSON.stringify(slices));
+        localStorage.setItem(CURRENT_STATE_LS_KEY_BUDGET, totalBudget.toString());
     }
 
-    /** Loads the current working state from local storage. */
     function loadCurrentWorkingState() {
-        const savedTotalBudget = localStorage.getItem('totalBudget_v2_7');
-        if (savedTotalBudget) {
-            totalBudget = parseFloat(savedTotalBudget);
-            totalBudgetInput.value = totalBudget;
-        } else {
-            totalBudget = 1000; // Default if nothing saved
-            totalBudgetInput.value = totalBudget;
-        }
+        const savedTotalBudget = localStorage.getItem(CURRENT_STATE_LS_KEY_BUDGET);
+        totalBudget = savedTotalBudget ? parseFloat(savedTotalBudget) : 1000;
+        totalBudgetInput.value = totalBudget;
 
-        const savedSlices = localStorage.getItem('budgetSlices_v2_7');
-        let tempNextId = 0; // To calculate nextSliceId for the current working set
-        const seenIds = new Set(); // To handle potential ID clashes if data is manually edited/corrupted
+        const savedSlices = localStorage.getItem(CURRENT_STATE_LS_KEY_SLICES);
+        let tempNextId = 0;
+        const seenIds = new Set();
 
         if (savedSlices) {
             try {
@@ -86,48 +81,36 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (e) { console.error("Erro ao carregar fatias de trabalho:", e); slices = []; }
         }
         
-        if (slices.length === 0) { // If no working slices loaded or parsing failed
-            tempNextId = 0; // Reset for default items
-            // Do not call addSlice here, as it modifies 'slices' directly and calls renderApp.
-            // Instead, build the default array.
-            const defaultSlicesData = [
+        if (slices.length === 0) {
+            tempNextId = 0;
+            slices = [
                 { id: tempNextId++, name: 'Mercado', percentage: 25, color: generateRandomRGB() },
                 { id: tempNextId++, name: 'Contas Fixas', percentage: 20, color: generateRandomRGB() },
                 { id: tempNextId++, name: 'Lazer', percentage: 10, color: generateRandomRGB() }
             ];
-            slices = defaultSlicesData; // Assign default slices
         }
-        nextSliceId = tempNextId; // Set the nextSliceId for the current working set
+        nextSliceId = tempNextId;
         normalizePercentages();
-        // renderApp() will be called by the main initialization logic after all states are loaded
     }
 
     // --- State Management for ALL SAVED STATES (in sidebar) ---
-    /** Loads all named save states from local storage. */
     function loadAllNamedStates() {
-        const statesJSON = localStorage.getItem('budgetManager_allStates_v2_7');
+        const statesJSON = localStorage.getItem(ALL_STATES_LS_KEY);
         if (statesJSON) {
             try {
                 allSavedStates = JSON.parse(statesJSON);
-                if (!Array.isArray(allSavedStates)) allSavedStates = []; // Ensure it's an array
-            } catch (e) {
-                console.error("Erro ao carregar lista de orçamentos salvos:", e);
-                allSavedStates = [];
-            }
-        } else {
-            allSavedStates = [];
-        }
+                if (!Array.isArray(allSavedStates)) allSavedStates = [];
+            } catch (e) { console.error("Erro ao carregar lista de orçamentos salvos:", e); allSavedStates = []; }
+        } else { allSavedStates = []; }
         renderSavedStatesList();
     }
 
-    /** Saves all named save states to local storage. */
     function saveAllNamedStates() {
-        localStorage.setItem('budgetManager_allStates_v2_7', JSON.stringify(allSavedStates));
+        localStorage.setItem(ALL_STATES_LS_KEY, JSON.stringify(allSavedStates));
     }
 
-    /** Renders the list of saved states in the sidebar. */
     function renderSavedStatesList() {
-        savedStatesListUI.innerHTML = ''; // Clear current list
+        savedStatesListUI.innerHTML = '';
         if (allSavedStates.length === 0) {
             savedStatesListUI.innerHTML = '<li class="no-states">Nenhum orçamento salvo.</li>';
             return;
@@ -135,143 +118,184 @@ document.addEventListener('DOMContentLoaded', () => {
         allSavedStates.forEach(state => {
             const li = document.createElement('li');
             li.dataset.stateId = state.id;
-
             const nameSpan = document.createElement('span');
             nameSpan.className = 'state-name';
             nameSpan.textContent = state.name;
             li.appendChild(nameSpan);
-
             const actionsDiv = document.createElement('div');
             actionsDiv.className = 'state-actions';
 
+            const shareBtn = document.createElement('button'); // Share button
+            shareBtn.textContent = '🔗'; // Link/Share Icon
+            shareBtn.title = "Compartilhar este orçamento";
+            shareBtn.className = 'share-btn';
+            shareBtn.onclick = () => generateShareLink(state.id);
+            actionsDiv.appendChild(shareBtn);
+
             const loadBtn = document.createElement('button');
-            loadBtn.textContent = 'Carregar';
-            loadBtn.className = 'load-btn';
+            loadBtn.textContent = 'Carregar'; loadBtn.className = 'load-btn';
             loadBtn.onclick = () => loadSpecificNamedState(state.id);
             actionsDiv.appendChild(loadBtn);
-
             const renameBtn = document.createElement('button');
-            renameBtn.textContent = 'Renomear';
-            renameBtn.className = 'rename-btn';
+            renameBtn.textContent = 'Renomear'; renameBtn.className = 'rename-btn';
             renameBtn.onclick = () => renameNamedState(state.id);
             actionsDiv.appendChild(renameBtn);
-
             const deleteBtn = document.createElement('button');
-            deleteBtn.textContent = 'Excluir';
-            deleteBtn.className = 'delete-btn';
+            deleteBtn.textContent = 'Excluir'; deleteBtn.className = 'delete-btn';
             deleteBtn.onclick = () => deleteNamedState(state.id);
             actionsDiv.appendChild(deleteBtn);
-
             li.appendChild(actionsDiv);
             savedStatesListUI.appendChild(li);
         });
     }
 
-    /** Handles saving the current working budget as a new named state. */
     function handleSaveNewState() {
         const name = newStateNameInput.value.trim();
-        if (!name) {
-            alert("Por favor, insira um nome para o orçamento.");
-            newStateNameInput.focus();
-            return;
-        }
-        // Check if name already exists (optional: allow overwrite or ask user)
+        if (!name) { alert("Por favor, insira um nome para o orçamento."); newStateNameInput.focus(); return; }
         if (allSavedStates.some(s => s.name === name)) {
-            if (!confirm(`Já existe um orçamento chamado "${name}". Deseja sobrescrevê-lo?`)) {
-                return;
-            }
-            // If overwriting, remove the old one by name first
+            if (!confirm(`Já existe um orçamento chamado "${name}". Deseja sobrescrevê-lo?`)) return;
             allSavedStates = allSavedStates.filter(s => s.name !== name);
         }
-
         const newState = {
-            id: Date.now(), // Simple unique ID
-            name: name,
-            slices: JSON.parse(JSON.stringify(slices)), // Deep copy
-            totalBudget: totalBudget
+            id: Date.now(), name: name,
+            slices: JSON.parse(JSON.stringify(slices)), totalBudget: totalBudget
         };
         allSavedStates.push(newState);
-        saveAllNamedStates();
-        renderSavedStatesList();
-        newStateNameInput.value = ''; // Clear input
+        saveAllNamedStates(); renderSavedStatesList();
+        newStateNameInput.value = '';
         alert(`Orçamento "${name}" salvo!`);
     }
 
-    /** Loads a specific named state into the current working area. */
     function loadSpecificNamedState(stateId) {
         const stateToLoad = allSavedStates.find(s => s.id === stateId);
         if (stateToLoad) {
-            slices = JSON.parse(JSON.stringify(stateToLoad.slices)); // Deep copy
+            slices = JSON.parse(JSON.stringify(stateToLoad.slices));
             totalBudget = stateToLoad.totalBudget;
             totalBudgetInput.value = totalBudget;
-
-            // Recalculate nextSliceId for the newly loaded set
             let tempNextId = 0;
-            if (slices.length > 0) {
-                tempNextId = Math.max(...slices.map(s => s.id)) + 1;
-            }
+            if (slices.length > 0) tempNextId = Math.max(...slices.map(s => s.id)) + 1;
             nextSliceId = tempNextId;
-
-            normalizePercentages();
-            renderApp(); // This will also call saveCurrentWorkingState
+            normalizePercentages(); renderApp();
             closeSidebar();
             alert(`Orçamento "${stateToLoad.name}" carregado.`);
-        } else {
-            alert("Erro: Orçamento salvo não encontrado.");
-        }
+        } else { alert("Erro: Orçamento salvo não encontrado."); }
     }
 
-    /** Renames a specific named state. */
     function renameNamedState(stateId) {
         const stateToRename = allSavedStates.find(s => s.id === stateId);
         if (stateToRename) {
             const newName = prompt(`Digite o novo nome para "${stateToRename.name}":`, stateToRename.name);
             if (newName && newName.trim() !== "") {
-                // Check if new name already exists (excluding the current one being renamed)
                 if (allSavedStates.some(s => s.name === newName.trim() && s.id !== stateId)) {
-                    alert(`Erro: Já existe um orçamento chamado "${newName.trim()}".`);
-                    return;
+                    alert(`Erro: Já existe um orçamento chamado "${newName.trim()}".`); return;
                 }
                 stateToRename.name = newName.trim();
-                saveAllNamedStates();
-                renderSavedStatesList();
+                saveAllNamedStates(); renderSavedStatesList();
             }
         }
     }
 
-    /** Deletes a specific named state. */
     function deleteNamedState(stateId) {
         const stateToDelete = allSavedStates.find(s => s.id === stateId);
         if (stateToDelete) {
             if (confirm(`Tem certeza que deseja excluir o orçamento "${stateToDelete.name}"?`)) {
                 allSavedStates = allSavedStates.filter(s => s.id !== stateId);
-                saveAllNamedStates();
-                renderSavedStatesList();
+                saveAllNamedStates(); renderSavedStatesList();
+            }
+        }
+    }
+
+    // --- Shareable Link Logic ---
+    function generateShareLink(stateId) {
+        const stateToShare = allSavedStates.find(s => s.id === stateId);
+        if (!stateToShare) {
+            alert("Erro: Orçamento não encontrado para compartilhar.");
+            return;
+        }
+        const dataToShare = {
+            slices: stateToShare.slices,
+            totalBudget: stateToShare.totalBudget,
+            // You could add a version number here if the data structure might change significantly
+            // version: "2.8" 
+        };
+        try {
+            const jsonString = JSON.stringify(dataToShare);
+            const base64String = btoa(jsonString); // Encode to Base64
+            const shareUrl = `${window.location.origin}${window.location.pathname}?state=${base64String}`;
+            
+            prompt(`Copie este link para compartilhar o orçamento "${stateToShare.name}":`, shareUrl);
+
+        } catch (e) {
+            console.error("Erro ao gerar link de compartilhamento:", e);
+            alert("Não foi possível gerar o link de compartilhamento.");
+        }
+    }
+
+    function loadStateFromURL() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const stateDataParam = urlParams.get('state');
+
+        if (stateDataParam) {
+            try {
+                const jsonString = atob(stateDataParam); // Decode from Base64
+                const sharedState = JSON.parse(jsonString);
+
+                // Basic validation of the shared state structure
+                if (sharedState && Array.isArray(sharedState.slices) && typeof sharedState.totalBudget === 'number') {
+                    console.log("Carregando estado da URL:", sharedState);
+                    slices = JSON.parse(JSON.stringify(sharedState.slices)); // Deep copy
+                    totalBudget = sharedState.totalBudget;
+                    totalBudgetInput.value = totalBudget;
+
+                    let tempNextId = 0;
+                    if (slices.length > 0) {
+                         // Ensure IDs are unique and find max for nextSliceId
+                        const seenIds = new Set();
+                        slices.forEach(s => {
+                            if(typeof s.id !== 'number' || seenIds.has(s.id)) {
+                                s.id = tempNextId; // Assign new ID if missing or duplicate
+                            }
+                            while(seenIds.has(s.id)){ // Ensure new ID is truly unique
+                                tempNextId++;
+                                s.id = tempNextId;
+                            }
+                            seenIds.add(s.id);
+                            if(s.id >= tempNextId) tempNextId = s.id + 1;
+                        });
+                    }
+                    nextSliceId = tempNextId;
+
+                    normalizePercentages();
+                    renderApp(); // This saves it as the current working state
+
+                    // Offer to save this shared state locally
+                    if (confirm(`Orçamento carregado da URL. Deseja salvá-lo localmente com um nome?`)) {
+                        const nameForShared = prompt("Digite um nome para este orçamento compartilhado:", "Orçamento Compartilhado");
+                        if (nameForShared && nameForShared.trim() !== "") {
+                            newStateNameInput.value = nameForShared.trim(); // Pre-fill for convenience
+                            handleSaveNewState(); // Save it
+                        }
+                    }
+                    
+                    // Clean the URL (optional, to prevent re-loading on simple refresh)
+                    // window.history.replaceState({}, document.title, window.location.pathname);
+
+                } else {
+                    console.warn("Dados de estado da URL inválidos ou incompletos.");
+                }
+            } catch (e) {
+                console.error("Erro ao carregar estado da URL:", e);
+                alert("Não foi possível carregar o orçamento compartilhado. O link pode estar corrompido.");
             }
         }
     }
 
 
     // --- Sidebar Toggle Logic ---
-    function openSidebar() {
-        sidebar.classList.add('open');
-        document.body.classList.add('sidebar-open'); // To push main content if needed
-        // appContainer.style.marginLeft = sidebar.style.width; // Example of pushing content
-    }
-    function closeSidebar() {
-        sidebar.classList.remove('open');
-        document.body.classList.remove('sidebar-open');
-        // appContainer.style.marginLeft = "0";
-    }
+    function openSidebar() { sidebar.classList.add('open'); document.body.classList.add('sidebar-open'); }
+    function closeSidebar() { sidebar.classList.remove('open'); document.body.classList.remove('sidebar-open'); }
     menuButton.addEventListener('click', openSidebar);
     closeMenuButton.addEventListener('click', closeSidebar);
-    // Close sidebar if user clicks outside of it (optional)
-    // document.addEventListener('click', (event) => {
-    //     if (sidebar.classList.contains('open') && !sidebar.contains(event.target) && event.target !== menuButton) {
-    //         closeSidebar();
-    //     }
-    // });
-
 
     /** Adds a new slice to the current working set. */
     function addSlice(name = 'Nova Categoria', percentage = 5, color = generateRandomRGB(), doRender = true) {
@@ -547,7 +571,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         document.removeEventListener('mouseup', onPointerUpResize);
         document.removeEventListener('touchend', onPointerUpResize);
-        normalizePercentages(); renderApp(); // renderApp now calls saveCurrentWorkingState
+        normalizePercentages(); renderApp();
         currentlyDraggedHandle = null; currentlyDraggedSliceData = null;
         initialClientX = 0; initialSlicePercentage = 0; adjacentSlicePercentage = 0;
     }
@@ -556,7 +580,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderApp() {
         renderSlider();
         renderTable();
-        saveCurrentWorkingState(); // Save the active working set after any render
+        saveCurrentWorkingState();
     }
 
     // Event Listeners Setup
@@ -567,12 +591,11 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (totalCurrentPercentage + initialNewPercentage > 100 && totalCurrentPercentage <= 100) {
             initialNewPercentage = Math.max(0, 100 - totalCurrentPercentage);
         } else if (totalCurrentPercentage >= 100) initialNewPercentage = 0;
-        addSlice('Nova Categoria', initialNewPercentage); // addSlice calls renderApp, which saves current working state
+        addSlice('Nova Categoria', initialNewPercentage);
     };
     addSliceButton.addEventListener('click', commonAddSliceAction);
     addSliceTableButton.addEventListener('click', commonAddSliceAction);
     saveNewStateButton.addEventListener('click', handleSaveNewState);
-
 
     totalBudgetInput.addEventListener('change', updateTotalBudget);
     totalBudgetInput.addEventListener('keyup', (e) => {
@@ -580,9 +603,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Initial Load
-    loadAllNamedStates(); // Load the list of named states for the sidebar
-    loadCurrentWorkingState(); // Load the last active working set (or defaults)
-    renderApp(); // Initial render of the loaded/default working set
+    loadAllNamedStates();       // 1. Load the list of all named states for the sidebar
+    loadStateFromURL();         // 2. Check if a state is being shared via URL and load it if so
+                                //    (This will set `slices` and `totalBudget` and call renderApp)
+    if (!new URLSearchParams(window.location.search).has('state')) {
+        loadCurrentWorkingState(); // 3. If no URL state, load the last saved working state (or defaults)
+    }
+    renderApp();                // 4. Initial render of the active working set
 
     setTimeout(() => {
         totalSliderWidth = budgetSlider.offsetWidth;

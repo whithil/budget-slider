@@ -8,8 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const unallocatedPercentageDiv = document.getElementById('unallocatedPercentage');
 
     // Sidebar DOM Elements
-    const menuToggleButton = document.getElementById('menuToggleButton'); // Renomeado de menuButton
-    // const closeMenuButton = document.getElementById('closeMenuButton'); // Removido
+    const menuToggleButton = document.getElementById('menuToggleButton');
     const sidebar = document.getElementById('sidebar');
     const newStateNameInput = document.getElementById('newStateNameInput');
     const saveNewStateButton = document.getElementById('saveNewStateButton');
@@ -22,7 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let allSavedStates = [];
 
     // Drag State Variables
-    let currentlyDraggedHandle = null;
+    let currentlyDraggedHandle = null; // Can be side resize handle or bottom marker
     let currentlyDraggedSliceData = null;
     let initialClientX = 0;
     let initialSlicePercentage = 0;
@@ -30,9 +29,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let totalSliderWidth = 0;
 
     const MIN_SLICE_PERCENTAGE = 0.5;
-    const CURRENT_STATE_LS_KEY_SLICES = 'budgetSlices_v2_9';
-    const CURRENT_STATE_LS_KEY_BUDGET = 'totalBudget_v2_9';
-    const ALL_STATES_LS_KEY = 'budgetManager_allStates_v2_9';
+    const CURRENT_STATE_LS_KEY_SLICES = 'budgetSlices_v2_10'; // Nova versão
+    const CURRENT_STATE_LS_KEY_BUDGET = 'totalBudget_v2_10'; // Nova versão
+    const ALL_STATES_LS_KEY = 'budgetManager_allStates_v2_10'; // Nova versão
 
 
     /** Generates a random RGB color string. */
@@ -126,10 +125,10 @@ document.addEventListener('DOMContentLoaded', () => {
             actionsDiv.className = 'state-actions';
 
             const shareBtn = document.createElement('button');
-            shareBtn.innerHTML = '🔗'; // Ícone de link/compartilhar
+            shareBtn.innerHTML = '🔗';
             shareBtn.title = "Compartilhar este orçamento";
             shareBtn.className = 'share-btn';
-            shareBtn.onclick = (e) => { e.stopPropagation(); generateShareLink(state.id); }; // Evita que o clique no botão feche a sidebar se o li tiver um listener
+            shareBtn.onclick = (e) => { e.stopPropagation(); generateShareLink(state.id); };
             actionsDiv.appendChild(shareBtn);
 
             const loadBtn = document.createElement('button');
@@ -179,7 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             nextSliceId = tempNextId;
             normalizePercentages(); renderApp();
-            toggleSidebar(); // Fecha a sidebar após carregar
+            toggleSidebar();
             alert(`Orçamento "${stateToLoad.name}" carregado.`);
         } else { alert("Erro: Orçamento salvo não encontrado."); }
     }
@@ -208,7 +207,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- Shareable Link Logic ---
     function generateShareLink(stateId) {
         const stateToShare = allSavedStates.find(s => s.id === stateId);
         if (!stateToShare) { alert("Erro: Orçamento não encontrado para compartilhar."); return; }
@@ -251,14 +249,11 @@ document.addEventListener('DOMContentLoaded', () => {
                             handleSaveNewState();
                         }
                     }
-                    // Clean the URL parameter to avoid reloading the shared state on refresh
-                    // window.history.replaceState({}, document.title, window.location.pathname);
                 } else { console.warn("Dados de estado da URL inválidos."); }
             } catch (e) { console.error("Erro ao carregar estado da URL:", e); alert("Link de compartilhamento inválido."); }
         }
     }
 
-    // --- Sidebar Toggle Logic ---
     function toggleSidebar() {
         const isOpen = sidebar.classList.contains('open');
         sidebar.classList.toggle('open');
@@ -266,9 +261,7 @@ document.addEventListener('DOMContentLoaded', () => {
         menuToggleButton.setAttribute('aria-expanded', !isOpen);
     }
     menuToggleButton.addEventListener('click', toggleSidebar);
-    // O closeMenuButton foi removido, o menuToggleButton faz o toggle.
 
-    /** Adds a new slice to the current working set. */
     function addSlice(name = 'Nova Categoria', percentage = 5, color = generateRandomRGB(), doRender = true) {
         percentage = Math.max(0, percentage);
         const newSlice = { id: nextSliceId++, name: `${name}`, percentage: percentage, color: color };
@@ -276,25 +269,21 @@ document.addEventListener('DOMContentLoaded', () => {
         if (doRender) { normalizePercentages(); renderApp(); }
     }
 
-    /** Removes a slice from the current working set. */
     function removeSlice(sliceId) {
         slices = slices.filter(slice => slice.id !== sliceId);
         normalizePercentages(); renderApp();
     }
 
-    /** Updates slice name in the current working set. */
     function updateSliceName(sliceId, newName) {
         const slice = slices.find(s => s.id === sliceId);
         if (slice) { slice.name = newName; renderApp(); }
     }
 
-    /** Updates slice color in the current working set. */
     function updateSliceColor(sliceId, newColor) {
         const slice = slices.find(s => s.id === sliceId);
         if (slice) { slice.color = newColor; renderApp(); }
     }
 
-    /** Updates slice percentage by amount in the current working set. */
     function updateSliceByAmount(sliceId, newAmount) {
         const slice = slices.find(s => s.id === sliceId);
         if (slice) {
@@ -309,7 +298,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    /** Updates total budget for the current working set. */
     function updateTotalBudget() {
         const newTotal = parseFloat(totalBudgetInput.value);
         totalBudget = (!isNaN(newTotal) && newTotal >= 0) ? newTotal : totalBudget;
@@ -317,7 +305,6 @@ document.addEventListener('DOMContentLoaded', () => {
         normalizePercentages(); renderApp();
     }
 
-    /** Normalizes percentages for the current working set. */
     function normalizePercentages() {
         if (slices.length === 0) return;
         slices.forEach(slice => {
@@ -342,7 +329,6 @@ document.addEventListener('DOMContentLoaded', () => {
         slices.forEach(s => { if (s.percentage < 0) s.percentage = 0; });
     }
 
-    /** Renders the slider for the current working set. */
     function renderSlider() {
         budgetSlider.innerHTML = '';
         totalSliderWidth = budgetSlider.offsetWidth;
@@ -364,23 +350,35 @@ document.addEventListener('DOMContentLoaded', () => {
             tooltipDiv.className = 'slice-tooltip';
             tooltipDiv.textContent = `${slice.name}: ${percentageValue.toFixed(2)}% (R$${amount.toFixed(2)})`;
             sliceDiv.appendChild(tooltipDiv);
-            const addResizeListeners = (handleElement) => {
-                handleElement.addEventListener('mousedown', onPointerDownResize);
-                handleElement.addEventListener('touchstart', onPointerDownResize, { passive: false });
+
+            // Add bottom marker
+            const bottomMarker = document.createElement('div');
+            bottomMarker.className = 'slice-bottom-marker';
+            bottomMarker.dataset.sliceIndex = index; // Link to the slice index
+            sliceDiv.appendChild(bottomMarker);
+
+
+            const addResizeListeners = (handleElement, isBottomMarker = false) => {
+                // Pass sliceIndex to onPointerDownResize, and a flag if it's a bottom marker
+                handleElement.addEventListener('mousedown', (e) => onPointerDownResize(e, sliceIndex, isBottomMarker));
+                handleElement.addEventListener('touchstart', (e) => onPointerDownResize(e, sliceIndex, isBottomMarker), { passive: false });
             };
+            
+            addResizeListeners(bottomMarker, true); // Add listeners to bottom marker
+
             if (index < slices.length - 1) {
                 const resizeHandle = document.createElement('div');
                 resizeHandle.className = 'resize-handle intermediate-resize-handle';
-                resizeHandle.dataset.sliceIndex = index;
+                // resizeHandle.dataset.sliceIndex = index; // sliceIndex is passed directly now
                 sliceDiv.appendChild(resizeHandle);
-                addResizeListeners(resizeHandle);
+                addResizeListeners(resizeHandle, false); // false for side handle
             }
             if (index === slices.length - 1 && slices.length > 0) {
                 const lastResizeHandle = document.createElement('div');
                 lastResizeHandle.className = 'resize-handle last-slice-resize-handle';
-                lastResizeHandle.dataset.sliceIndex = index;
+                // lastResizeHandle.dataset.sliceIndex = index; // sliceIndex is passed directly now
                 sliceDiv.appendChild(lastResizeHandle);
-                addResizeListeners(lastResizeHandle);
+                addResizeListeners(lastResizeHandle, false); // false for side handle
             }
             budgetSlider.appendChild(sliceDiv);
         });
@@ -409,7 +407,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    /** Renders the table for the current working set. */
     function renderTable() {
         slicesTableBody.innerHTML = '';
         slices.forEach(slice => {
@@ -459,7 +456,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    /** Converts RGB to HEX. */
     function rgbToHex(rgb) {
         if (!rgb || rgb.startsWith('#')) return rgb || '#000000';
         let sep = rgb.indexOf(",") > -1 ? "," : " "; rgb = rgb.substr(4).split(")")[0].split(sep);
@@ -468,24 +464,30 @@ document.addEventListener('DOMContentLoaded', () => {
         return "#" + r + g + b;
     }
 
-    // --- Unified Pointer Down for Resize Handles ---
-    function onPointerDownResize(e) {
+    function onPointerDownResize(e, sliceIndex, isBottomMarker = false) { // Added sliceIndex and isBottomMarker
         if (e.type === 'touchstart') e.preventDefault();
-        currentlyDraggedHandle = e.target;
-        const sliceIndex = parseInt(currentlyDraggedHandle.dataset.sliceIndex);
-        const currentSlice = slices[sliceIndex]; if (!currentSlice) return;
+        currentlyDraggedHandle = e.target; // This is now the marker or the side handle
+        
+        const currentSlice = slices[sliceIndex];
+        if (!currentSlice) { console.error("Slice não encontrada para o marcador:", sliceIndex); return; }
+
         currentSlice.percentage = (typeof currentSlice.percentage === 'number' && !isNaN(currentSlice.percentage)) ? currentSlice.percentage : 0;
         initialClientX = (e.type === 'touchstart') ? e.touches[0].clientX : e.clientX;
         totalSliderWidth = budgetSlider.offsetWidth;
         initialSlicePercentage = currentSlice.percentage;
-        if (currentlyDraggedHandle.classList.contains('intermediate-resize-handle')) {
-            const nextSlice = slices[sliceIndex + 1]; if (!nextSlice) return;
+
+        // Determine if it's an intermediate resize (affects next slice) or last slice resize
+        const isLastSlice = (sliceIndex === slices.length - 1);
+
+        if (!isLastSlice) { // Intermediate slice (or a bottom marker on an intermediate slice)
+            const nextSlice = slices[sliceIndex + 1];
+            if (!nextSlice) { console.error("Próxima slice não encontrada:", sliceIndex + 1); return; }
             nextSlice.percentage = (typeof nextSlice.percentage === 'number' && !isNaN(nextSlice.percentage)) ? nextSlice.percentage : 0;
             currentlyDraggedSliceData = { current: currentSlice, next: nextSlice };
             adjacentSlicePercentage = nextSlice.percentage;
             document.addEventListener('mousemove', onPointerMoveResizeIntermediate);
             document.addEventListener('touchmove', onPointerMoveResizeIntermediate, { passive: false });
-        } else if (currentlyDraggedHandle.classList.contains('last-slice-resize-handle')) {
+        } else { // Last slice (or a bottom marker on the last slice)
             currentlyDraggedSliceData = { current: currentSlice };
             document.addEventListener('mousemove', onPointerMoveResizeLast);
             document.addEventListener('touchmove', onPointerMoveResizeLast, { passive: false });
@@ -494,7 +496,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.addEventListener('touchend', onPointerUpResize);
     }
 
-    // --- Pointer Move for Intermediate Slice Resize ---
     function onPointerMoveResizeIntermediate(e) {
         if (!currentlyDraggedHandle || !currentlyDraggedSliceData || !currentlyDraggedSliceData.next) return;
         if (e.type === 'touchmove') e.preventDefault();
@@ -518,7 +519,6 @@ document.addEventListener('DOMContentLoaded', () => {
         renderSlider(); renderTable();
     }
 
-    // --- Pointer Move for Last Slice Resize ---
     function onPointerMoveResizeLast(e) {
         if (!currentlyDraggedHandle || !currentlyDraggedSliceData || currentlyDraggedSliceData.next) return;
         if (e.type === 'touchmove') e.preventDefault();
@@ -530,13 +530,13 @@ document.addEventListener('DOMContentLoaded', () => {
         renderSlider(); renderTable();
     }
 
-    // --- Unified Pointer Up for All Resize Operations ---
     function onPointerUpResize() {
         if (!currentlyDraggedHandle) return;
-        if (currentlyDraggedHandle.classList.contains('intermediate-resize-handle')) {
+        // Check which type of move listener was attached based on currentlyDraggedSliceData
+        if (currentlyDraggedSliceData && currentlyDraggedSliceData.next) { // Intermediate resize
             document.removeEventListener('mousemove', onPointerMoveResizeIntermediate);
             document.removeEventListener('touchmove', onPointerMoveResizeIntermediate);
-        } else if (currentlyDraggedHandle.classList.contains('last-slice-resize-handle')) {
+        } else if (currentlyDraggedSliceData && !currentlyDraggedSliceData.next) { // Last slice resize
             document.removeEventListener('mousemove', onPointerMoveResizeLast);
             document.removeEventListener('touchmove', onPointerMoveResizeLast);
         }
@@ -547,14 +547,12 @@ document.addEventListener('DOMContentLoaded', () => {
         initialClientX = 0; initialSlicePercentage = 0; adjacentSlicePercentage = 0;
     }
 
-    /** Central function to re-render UI and save the current working state. */
     function renderApp() {
         renderSlider();
         renderTable();
         saveCurrentWorkingState();
     }
 
-    // Event Listeners Setup
     const commonAddSliceAction = () => {
         let initialNewPercentage = 5;
         const totalCurrentPercentage = slices.reduce((sum, s) => sum + ((typeof s.percentage === 'number' && !isNaN(s.percentage)) ? s.percentage : 0), 0);
@@ -573,7 +571,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.key === 'Enter' || e.keyCode === 13 || totalBudgetInput.value === '') updateTotalBudget();
     });
 
-    // Initial Load
     loadAllNamedStates();
     loadStateFromURL();
     if (!new URLSearchParams(window.location.search).has('state')) {

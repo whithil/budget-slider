@@ -1,4 +1,4 @@
-const CACHE_NAME = 'budget-manager-v2.9-cache'; // Updated cache name
+const CACHE_NAME = 'budget-manager-v2.10-cache'; // Updated cache name
 const urlsToCache = [
   '/',
   'index.html',
@@ -8,7 +8,7 @@ const urlsToCache = [
 ];
 
 self.addEventListener('install', event => {
-  console.log('[ServiceWorker] Installing v2.9...');
+  console.log('[ServiceWorker] Installing v2.10...');
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
@@ -26,7 +26,7 @@ self.addEventListener('install', event => {
 });
 
 self.addEventListener('activate', event => {
-  console.log('[ServiceWorker] Activating v2.9...');
+  console.log('[ServiceWorker] Activating v2.10...');
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(

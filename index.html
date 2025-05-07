@@ -11,10 +11,11 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <button id="menuButton" class="menu-button" aria-label="Abrir menu de orçamentos salvos">&#9776;</button>
+    <button id="menuToggleButton" class="menu-toggle-button" aria-label="Abrir menu de orçamentos salvos" aria-expanded="false">
+        <span class="hamburger-icon"></span>
+    </button>
 
     <div id="sidebar" class="sidebar">
-        <a href="javascript:void(0)" class="close-btn" id="closeMenuButton">&times;</a>
         <h3>Orçamentos Salvos</h3>
         <div class="save-current-state-form">
             <input type="text" id="newStateNameInput" placeholder="Nome do novo orçamento">

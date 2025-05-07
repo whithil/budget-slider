@@ -8,8 +8,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const unallocatedPercentageDiv = document.getElementById('unallocatedPercentage');
 
     // Sidebar DOM Elements
-    const menuButton = document.getElementById('menuButton');
-    const closeMenuButton = document.getElementById('closeMenuButton');
+    const menuToggleButton = document.getElementById('menuToggleButton'); // Renomeado de menuButton
+    // const closeMenuButton = document.getElementById('closeMenuButton'); // Removido
     const sidebar = document.getElementById('sidebar');
     const newStateNameInput = document.getElementById('newStateNameInput');
     const saveNewStateButton = document.getElementById('saveNewStateButton');
@@ -30,9 +30,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let totalSliderWidth = 0;
 
     const MIN_SLICE_PERCENTAGE = 0.5;
-    const CURRENT_STATE_LS_KEY_SLICES = 'budgetSlices_v2_8';
-    const CURRENT_STATE_LS_KEY_BUDGET = 'totalBudget_v2_8';
-    const ALL_STATES_LS_KEY = 'budgetManager_allStates_v2_8';
+    const CURRENT_STATE_LS_KEY_SLICES = 'budgetSlices_v2_9';
+    const CURRENT_STATE_LS_KEY_BUDGET = 'totalBudget_v2_9';
+    const ALL_STATES_LS_KEY = 'budgetManager_allStates_v2_9';
 
 
     /** Generates a random RGB color string. */
@@ -125,24 +125,24 @@ document.addEventListener('DOMContentLoaded', () => {
             const actionsDiv = document.createElement('div');
             actionsDiv.className = 'state-actions';
 
-            const shareBtn = document.createElement('button'); // Share button
-            shareBtn.textContent = '🔗'; // Link/Share Icon
+            const shareBtn = document.createElement('button');
+            shareBtn.innerHTML = '🔗'; // Ícone de link/compartilhar
             shareBtn.title = "Compartilhar este orçamento";
             shareBtn.className = 'share-btn';
-            shareBtn.onclick = () => generateShareLink(state.id);
+            shareBtn.onclick = (e) => { e.stopPropagation(); generateShareLink(state.id); }; // Evita que o clique no botão feche a sidebar se o li tiver um listener
             actionsDiv.appendChild(shareBtn);
 
             const loadBtn = document.createElement('button');
             loadBtn.textContent = 'Carregar'; loadBtn.className = 'load-btn';
-            loadBtn.onclick = () => loadSpecificNamedState(state.id);
+            loadBtn.onclick = (e) => { e.stopPropagation(); loadSpecificNamedState(state.id); };
             actionsDiv.appendChild(loadBtn);
             const renameBtn = document.createElement('button');
             renameBtn.textContent = 'Renomear'; renameBtn.className = 'rename-btn';
-            renameBtn.onclick = () => renameNamedState(state.id);
+            renameBtn.onclick = (e) => { e.stopPropagation(); renameNamedState(state.id); };
             actionsDiv.appendChild(renameBtn);
             const deleteBtn = document.createElement('button');
             deleteBtn.textContent = 'Excluir'; deleteBtn.className = 'delete-btn';
-            deleteBtn.onclick = () => deleteNamedState(state.id);
+            deleteBtn.onclick = (e) => { e.stopPropagation(); deleteNamedState(state.id); };
             actionsDiv.appendChild(deleteBtn);
             li.appendChild(actionsDiv);
             savedStatesListUI.appendChild(li);
@@ -173,10 +173,13 @@ document.addEventListener('DOMContentLoaded', () => {
             totalBudget = stateToLoad.totalBudget;
             totalBudgetInput.value = totalBudget;
             let tempNextId = 0;
-            if (slices.length > 0) tempNextId = Math.max(...slices.map(s => s.id)) + 1;
+            if (slices.length > 0) {
+                const maxId = Math.max(...slices.map(s => typeof s.id === 'number' ? s.id : -1));
+                tempNextId = maxId >= 0 ? maxId + 1 : 0;
+            }
             nextSliceId = tempNextId;
             normalizePercentages(); renderApp();
-            closeSidebar();
+            toggleSidebar(); // Fecha a sidebar após carregar
             alert(`Orçamento "${stateToLoad.name}" carregado.`);
         } else { alert("Erro: Orçamento salvo não encontrado."); }
     }
@@ -208,94 +211,62 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Shareable Link Logic ---
     function generateShareLink(stateId) {
         const stateToShare = allSavedStates.find(s => s.id === stateId);
-        if (!stateToShare) {
-            alert("Erro: Orçamento não encontrado para compartilhar.");
-            return;
-        }
-        const dataToShare = {
-            slices: stateToShare.slices,
-            totalBudget: stateToShare.totalBudget,
-            // You could add a version number here if the data structure might change significantly
-            // version: "2.8" 
-        };
+        if (!stateToShare) { alert("Erro: Orçamento não encontrado para compartilhar."); return; }
+        const dataToShare = { slices: stateToShare.slices, totalBudget: stateToShare.totalBudget };
         try {
             const jsonString = JSON.stringify(dataToShare);
-            const base64String = btoa(jsonString); // Encode to Base64
+            const base64String = btoa(jsonString);
             const shareUrl = `${window.location.origin}${window.location.pathname}?state=${base64String}`;
-            
             prompt(`Copie este link para compartilhar o orçamento "${stateToShare.name}":`, shareUrl);
-
-        } catch (e) {
-            console.error("Erro ao gerar link de compartilhamento:", e);
-            alert("Não foi possível gerar o link de compartilhamento.");
-        }
+        } catch (e) { console.error("Erro ao gerar link:", e); alert("Não foi possível gerar o link."); }
     }
 
     function loadStateFromURL() {
         const urlParams = new URLSearchParams(window.location.search);
         const stateDataParam = urlParams.get('state');
-
         if (stateDataParam) {
             try {
-                const jsonString = atob(stateDataParam); // Decode from Base64
+                const jsonString = atob(stateDataParam);
                 const sharedState = JSON.parse(jsonString);
-
-                // Basic validation of the shared state structure
                 if (sharedState && Array.isArray(sharedState.slices) && typeof sharedState.totalBudget === 'number') {
-                    console.log("Carregando estado da URL:", sharedState);
-                    slices = JSON.parse(JSON.stringify(sharedState.slices)); // Deep copy
+                    slices = JSON.parse(JSON.stringify(sharedState.slices));
                     totalBudget = sharedState.totalBudget;
                     totalBudgetInput.value = totalBudget;
-
                     let tempNextId = 0;
                     if (slices.length > 0) {
-                         // Ensure IDs are unique and find max for nextSliceId
                         const seenIds = new Set();
                         slices.forEach(s => {
-                            if(typeof s.id !== 'number' || seenIds.has(s.id)) {
-                                s.id = tempNextId; // Assign new ID if missing or duplicate
-                            }
-                            while(seenIds.has(s.id)){ // Ensure new ID is truly unique
-                                tempNextId++;
-                                s.id = tempNextId;
-                            }
+                            if(typeof s.id !== 'number' || seenIds.has(s.id)) s.id = tempNextId;
+                            while(seenIds.has(s.id)){ tempNextId++; s.id = tempNextId; }
                             seenIds.add(s.id);
                             if(s.id >= tempNextId) tempNextId = s.id + 1;
                         });
                     }
                     nextSliceId = tempNextId;
-
-                    normalizePercentages();
-                    renderApp(); // This saves it as the current working state
-
-                    // Offer to save this shared state locally
-                    if (confirm(`Orçamento carregado da URL. Deseja salvá-lo localmente com um nome?`)) {
-                        const nameForShared = prompt("Digite um nome para este orçamento compartilhado:", "Orçamento Compartilhado");
+                    normalizePercentages(); renderApp();
+                    if (confirm(`Orçamento carregado da URL. Deseja salvá-lo localmente?`)) {
+                        const nameForShared = prompt("Digite um nome:", "Orçamento Compartilhado");
                         if (nameForShared && nameForShared.trim() !== "") {
-                            newStateNameInput.value = nameForShared.trim(); // Pre-fill for convenience
-                            handleSaveNewState(); // Save it
+                            newStateNameInput.value = nameForShared.trim();
+                            handleSaveNewState();
                         }
                     }
-                    
-                    // Clean the URL (optional, to prevent re-loading on simple refresh)
+                    // Clean the URL parameter to avoid reloading the shared state on refresh
                     // window.history.replaceState({}, document.title, window.location.pathname);
-
-                } else {
-                    console.warn("Dados de estado da URL inválidos ou incompletos.");
-                }
-            } catch (e) {
-                console.error("Erro ao carregar estado da URL:", e);
-                alert("Não foi possível carregar o orçamento compartilhado. O link pode estar corrompido.");
-            }
+                } else { console.warn("Dados de estado da URL inválidos."); }
+            } catch (e) { console.error("Erro ao carregar estado da URL:", e); alert("Link de compartilhamento inválido."); }
         }
     }
 
-
     // --- Sidebar Toggle Logic ---
-    function openSidebar() { sidebar.classList.add('open'); document.body.classList.add('sidebar-open'); }
-    function closeSidebar() { sidebar.classList.remove('open'); document.body.classList.remove('sidebar-open'); }
-    menuButton.addEventListener('click', openSidebar);
-    closeMenuButton.addEventListener('click', closeSidebar);
+    function toggleSidebar() {
+        const isOpen = sidebar.classList.contains('open');
+        sidebar.classList.toggle('open');
+        document.body.classList.toggle('sidebar-open');
+        menuToggleButton.setAttribute('aria-expanded', !isOpen);
+    }
+    menuToggleButton.addEventListener('click', toggleSidebar);
+    // O closeMenuButton foi removido, o menuToggleButton faz o toggle.
 
     /** Adds a new slice to the current working set. */
     function addSlice(name = 'Nova Categoria', percentage = 5, color = generateRandomRGB(), doRender = true) {
@@ -603,13 +574,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Initial Load
-    loadAllNamedStates();       // 1. Load the list of all named states for the sidebar
-    loadStateFromURL();         // 2. Check if a state is being shared via URL and load it if so
-                                //    (This will set `slices` and `totalBudget` and call renderApp)
+    loadAllNamedStates();
+    loadStateFromURL();
     if (!new URLSearchParams(window.location.search).has('state')) {
-        loadCurrentWorkingState(); // 3. If no URL state, load the last saved working state (or defaults)
+        loadCurrentWorkingState();
     }
-    renderApp();                // 4. Initial render of the active working set
+    renderApp();
 
     setTimeout(() => {
         totalSliderWidth = budgetSlider.offsetWidth;

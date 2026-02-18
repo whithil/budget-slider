@@ -4,7 +4,7 @@ const urlsToCache = [
   'index.html',
   'style.css',
   'app.js',
-  'https://placehold.co/192x192/3498db/ffffff?text=Icon192' // Placeholder icon
+  'icons/icon-192x192.png'
 ];
 
 self.addEventListener('install', event => {

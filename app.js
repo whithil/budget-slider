@@ -14,6 +14,37 @@ document.addEventListener('DOMContentLoaded', () => {
     const saveNewStateButton = document.getElementById('saveNewStateButton');
     const savedStatesListUI = document.getElementById('savedStatesList');
 
+    // PWA Install Prompt
+    let deferredPrompt;
+    const installBanner = document.getElementById('installBanner');
+    const installButton = document.getElementById('installButton');
+    const dismissInstall = document.getElementById('dismissInstall');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        installBanner.style.display = 'flex';
+    });
+
+    installButton.addEventListener('click', () => {
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then((choiceResult) => {
+                if (choiceResult.outcome === 'accepted') {
+                    console.log('User accepted the install prompt');
+                } else {
+                    console.log('User dismissed the install prompt');
+                }
+                deferredPrompt = null;
+                installBanner.style.display = 'none';
+            });
+        }
+    });
+
+    dismissInstall.addEventListener('click', () => {
+        installBanner.style.display = 'none';
+    });
+
     // Application State
     let slices = [];
     let totalBudget = parseFloat(totalBudgetInput.value) || 1000;

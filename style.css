@@ -1506,7 +1506,7 @@ text {
 /* --- Inline Contextual Actions --- */
 .name-col-contextual {
     position: relative;
-    padding-right: 40px !important;
+    padding-right: 7px !important;
 }
 
 .name-input-wrapper {
@@ -1664,7 +1664,7 @@ tr:hover .inline-delete-item-btn {
     }
 
     .item-row .slice-amount-input {
-        width: 65px;
+        width: 50px;
         padding: 4px 6px;
         font-size: 0.85em;
     }
@@ -1690,6 +1690,6 @@ tr:hover .inline-delete-item-btn {
     }
 
     .name-col-contextual {
-        padding-right: 30px !important;
+        padding-right: 7px !important;
     }
 }

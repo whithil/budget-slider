@@ -15,70 +15,103 @@ body {
     transition: margin-left .3s ease-in-out;
 }
 
-.menu-toggle-button {
-    font-size: 20px;
-    padding: 0;
-    width: 44px;
-    height: 44px;
+.fab-container {
     position: fixed;
-    top: 10px;
-    left: 10px;
+    top: 15px;
+    left: 15px;
+    display: flex;
+    flex-direction: column;
+    z-index: 1002;
+    transition: margin-left .3s ease-in-out;
+}
+
+.fab-options {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 0;
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+    pointer-events: none;
+}
+
+.fab-container.expanded .fab-options {
+    margin-top: 12px;
+    max-height: 500px;
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.fab {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
     background-color: #34495e;
     color: white;
     border: none;
-    border-radius: 5px;
     cursor: pointer;
-    z-index: 1002;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-    transition: margin-left .3s ease-in-out, background-color .3s;
     display: flex;
     align-items: center;
     justify-content: center;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease, height 0.3s ease, margin-top 0.3s ease;
 }
 
-.menu-toggle-button:hover {
+
+.fab:hover {
     background-color: #2c3e50;
+    transform: scale(1.1);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4);
 }
 
-.hamburger-icon {
-    width: 22px;
-    height: 2px;
-    background-color: white;
-    display: block;
-    position: relative;
-    transition: all 0.3s ease-in-out;
+.fab .material-icons {
+    font-size: 24px;
+    transition: transform 0.3s ease;
 }
 
-.hamburger-icon::before,
-.hamburger-icon::after {
-    content: '';
-    width: 22px;
-    height: 2px;
-    background-color: white;
-    position: absolute;
-    left: 0;
-    transition: all 0.3s ease-in-out;
+.fab-container.expanded .main-fab .material-icons {
+    transform: rotate(90deg);
 }
 
-.hamburger-icon::before {
-    top: -7px;
+.fab#fabSave {
+    background-color: #3498db;
 }
 
-.hamburger-icon::after {
-    bottom: -7px;
+.fab#fabSave:hover {
+    background-color: #2980b9;
 }
 
-body.sidebar-open .menu-toggle-button .hamburger-icon {
-    background-color: transparent;
+.fab#fabShareCurrent {
+    background-color: #9b59b6;
 }
 
-body.sidebar-open .menu-toggle-button .hamburger-icon::before {
-    transform: translateY(7px) rotate(45deg);
+.fab#fabShareCurrent:hover {
+    background-color: #8e44ad;
 }
 
-body.sidebar-open .menu-toggle-button .hamburger-icon::after {
-    transform: translateY(-7px) rotate(-45deg);
+.fab#fabClearCurrent {
+    background-color: #e74c3c;
 }
+
+.fab#fabClearCurrent:hover {
+    background-color: #c0392b;
+}
+
+.fab#fabInstall {
+    background-color: #2ecc71;
+}
+
+.fab#fabInstall:hover {
+    background-color: #27ae60;
+}
+
+body.sidebar-open .fab-container {
+    margin-left: 280px;
+}
+
+
 
 .sidebar {
     height: 100%;
@@ -1026,11 +1059,13 @@ text {
     font-family: inherit;
     font-size: 0.95em;
     -moz-appearance: textfield;
+    appearance: textfield;
 }
 
 .item-row .slice-amount-input::-webkit-outer-spin-button,
 .item-row .slice-amount-input::-webkit-inner-spin-button {
     -webkit-appearance: none;
+    appearance: none;
     margin: 0;
 }
 

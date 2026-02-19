@@ -9,6 +9,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const totalBudgetInput = document.getElementById('totalBudgetInput');
     const unallocatedPercentageDiv = document.getElementById('unallocatedPercentage');
 
+    // Application State
+    let slices = [];
+    let totalBudget = 1000;
+    let nextSliceId = 0;
+    let allSavedStates = [];
+
+    const CURRENT_STATE_LS_KEY_SLICES = 'budgetSlices_v3_sunburst';
+    const CURRENT_STATE_LS_KEY_BUDGET = 'totalBudget_v3_sunburst';
+    const ALL_STATES_LS_KEY = 'budgetManager_allStates_v3_sunburst';
+
     // Samples Modal Elements
     const samplesModal = document.getElementById('samplesModal');
     const closeModalBtn = document.getElementById('closeModalBtn');
@@ -16,12 +26,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const addFirstCategoryBtn = document.getElementById('addFirstCategoryBtn');
     const samplesGrid = document.getElementById('samplesGrid');
 
-    // Sidebar DOM Elements
-    const menuToggleButton = document.getElementById('menuToggleButton');
+    const fabContainer = document.getElementById('fabContainer');
+    const fabMain = document.getElementById('fabMain');
+    const fabLoad = document.getElementById('fabLoad');
+    const fabSave = document.getElementById('fabSave');
+    const fabShareCurrent = document.getElementById('fabShareCurrent');
+    const fabClearCurrent = document.getElementById('fabClearCurrent');
+    const fabInstall = document.getElementById('fabInstall');
+
     const sidebar = document.getElementById('sidebar');
+    const sidebarLoadSection = document.getElementById('sidebarLoadSection');
+    const sidebarSaveSection = document.getElementById('sidebarSaveSection');
     const newStateNameInput = document.getElementById('newStateNameInput');
     const saveNewStateButton = document.getElementById('saveNewStateButton');
     const savedStatesListUI = document.getElementById('savedStatesList');
+
 
     const BUDGET_SAMPLES = [
         {
@@ -122,45 +141,41 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // PWA Install Prompt
     let deferredPrompt;
+
     const installBanner = document.getElementById('installBanner');
-    const installButton = document.getElementById('installButton');
-    const dismissInstall = document.getElementById('dismissInstall');
+    // Removed old installButton/dismissInstall as we use the FAB now
 
     window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
         deferredPrompt = e;
-        installBanner.style.display = 'flex';
+        if (fabInstall) fabInstall.style.display = 'flex';
     });
 
-    installButton.addEventListener('click', () => {
-        if (deferredPrompt) {
-            deferredPrompt.prompt();
-            deferredPrompt.userChoice.then((choiceResult) => {
-                if (choiceResult.outcome === 'accepted') {
-                    console.log('User accepted the install prompt');
-                } else {
-                    console.log('User dismissed the install prompt');
-                }
-                deferredPrompt = null;
-                installBanner.style.display = 'none';
-            });
-        }
-    });
+    if (fabInstall) {
+        fabInstall.addEventListener('click', () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('User accepted the install prompt');
+                        fabInstall.style.display = 'none';
+                    }
+                    deferredPrompt = null;
+                });
+            }
+        });
+    }
 
-    dismissInstall.addEventListener('click', () => {
-        installBanner.style.display = 'none';
-    });
+    function closeFabMenu() {
+        if (fabContainer) fabContainer.classList.remove('expanded');
+    }
 
-    const clearBudgetButton = document.getElementById('clearBudgetButton');
-    if (clearBudgetButton) {
-        clearBudgetButton.addEventListener('click', () => {
+    // Clear Budget Button Logic (Moved to FAB)
+    if (fabClearCurrent) {
+        fabClearCurrent.addEventListener('click', () => {
             if (confirm("Tem certeza que deseja limpar todo o orçamento atual? Isso não afetará seus orçamentos salvos.")) {
                 clearBudget();
-                // Close sidebar if on mobile
-                if (window.innerWidth <= 768) {
-                    sidebar.classList.remove('open');
-                    menuToggleButton.classList.remove('open');
-                }
+                closeFabMenu();
             }
         });
     }
@@ -171,17 +186,64 @@ document.addEventListener('DOMContentLoaded', () => {
         totalBudgetInput.value = 1000;
         saveCurrentWorkingState();
         renderApp();
+        // Close sidebar if on mobile
+        if (window.innerWidth <= 768 && sidebar.classList.contains('open')) {
+            toggleSidebar();
+        }
     }
 
-    // Application State
-    let slices = [];
-    let totalBudget = parseFloat(totalBudgetInput.value) || 1000;
-    let nextSliceId = 0;
-    let allSavedStates = [];
+    // New FAB Listeners
+    if (fabMain) {
+        fabMain.addEventListener('click', () => {
+            fabContainer.classList.toggle('expanded');
+        });
+    }
 
-    const CURRENT_STATE_LS_KEY_SLICES = 'budgetSlices_v3_sunburst';
-    const CURRENT_STATE_LS_KEY_BUDGET = 'totalBudget_v3_sunburst';
-    const ALL_STATES_LS_KEY = 'budgetManager_allStates_v3_sunburst';
+    if (fabLoad) fabLoad.addEventListener('click', () => {
+        toggleSidebar('load');
+        closeFabMenu();
+    });
+
+    if (fabSave) fabSave.addEventListener('click', () => {
+        toggleSidebar('save');
+        closeFabMenu();
+    });
+
+    if (fabShareCurrent) fabShareCurrent.addEventListener('click', () => {
+        generateShareCurrentLink();
+        closeFabMenu();
+    });
+
+    function generateShareCurrentLink() {
+        const dataToShare = { slices: slices, totalBudget: totalBudget };
+        try {
+            const jsonString = JSON.stringify(dataToShare);
+            const base64String = btoa(unescape(encodeURIComponent(jsonString)));
+            const shareUrl = `${window.location.origin}${window.location.pathname}?state=${base64String}`;
+
+            // Try to use Clipboard API
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(shareUrl).then(() => {
+                    alert("Link de compartilhamento copiado para a área de transferência!");
+                }).catch(err => {
+                    console.error("Erro ao copiar:", err);
+                    prompt("Copie este link para compartilhar:", shareUrl);
+                });
+            } else {
+                prompt("Copie este link para compartilhar:", shareUrl);
+            }
+        } catch (e) {
+            console.error("Erro ao gerar link:", e);
+            alert("Não foi possível gerar o link.");
+        }
+    }
+
+    function toggleSidebar() {
+        const isOpen = sidebar.classList.contains('open');
+        sidebar.classList.toggle('open');
+        document.body.classList.toggle('sidebar-open');
+    }
+
 
 
     /** Generates a random RGB color string. */
@@ -428,25 +490,36 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function deleteNamedState(stateId) {
-        const stateToDelete = allSavedStates.find(s => s.id === stateId);
+        // Ensure stateId is compared correctly (it might come as string from dataset but Date.now() is number)
+        const idToMatch = Number(stateId);
+        const stateToDelete = allSavedStates.find(s => Number(s.id) === idToMatch);
         if (stateToDelete) {
             if (confirm(`Tem certeza que deseja excluir o orçamento "${stateToDelete.name}"?`)) {
-                allSavedStates = allSavedStates.filter(s => s.id !== stateId);
+                allSavedStates = allSavedStates.filter(s => Number(s.id) !== idToMatch);
                 saveAllNamedStates(); renderSavedStatesList();
             }
         }
     }
 
     function generateShareLink(stateId) {
-        const stateToShare = allSavedStates.find(s => s.id === stateId);
+        const idToMatch = Number(stateId);
+        const stateToShare = allSavedStates.find(s => Number(s.id) === idToMatch);
         if (!stateToShare) { alert("Erro: Orçamento não encontrado para compartilhar."); return; }
         const dataToShare = { slices: stateToShare.slices, totalBudget: stateToShare.totalBudget };
         try {
             const jsonString = JSON.stringify(dataToShare);
-            // UTF-8 safe base64 encoding
             const base64String = btoa(unescape(encodeURIComponent(jsonString)));
             const shareUrl = `${window.location.origin}${window.location.pathname}?state=${base64String}`;
-            prompt(`Copie este link para compartilhar o orçamento "${stateToShare.name}":`, shareUrl);
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(shareUrl).then(() => {
+                    alert(`Link para "${stateToShare.name}" copiado para a área de transferência!`);
+                }).catch(err => {
+                    prompt(`Copie este link para compartilhar o orçamento "${stateToShare.name}":`, shareUrl);
+                });
+            } else {
+                prompt(`Copie este link para compartilhar o orçamento "${stateToShare.name}":`, shareUrl);
+            }
         } catch (e) { console.error("Erro ao gerar link:", e); alert("Não foi possível gerar o link."); }
     }
 
@@ -486,13 +559,40 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function toggleSidebar() {
+    function toggleSidebar(mode = 'load') {
         const isOpen = sidebar.classList.contains('open');
-        sidebar.classList.toggle('open');
-        document.body.classList.toggle('sidebar-open');
-        menuToggleButton.setAttribute('aria-expanded', !isOpen);
+
+        // If sidebar is already open and in the same mode, close it
+        if (isOpen && (
+            (mode === 'load' && sidebarLoadSection.style.display !== 'none') ||
+            (mode === 'save' && sidebarSaveSection.style.display !== 'none')
+        )) {
+            sidebar.classList.remove('open');
+            document.body.classList.remove('sidebar-open');
+            if (fabLoad) fabLoad.setAttribute('aria-expanded', 'false');
+            return;
+        }
+
+        // Show/hide sections based on mode
+        if (mode === 'load') {
+            sidebarLoadSection.style.display = 'block';
+            sidebarSaveSection.style.display = 'none';
+        } else if (mode === 'save') {
+            sidebarLoadSection.style.display = 'none';
+            sidebarSaveSection.style.display = 'block';
+        }
+
+        if (!isOpen) {
+            sidebar.classList.add('open');
+            document.body.classList.add('sidebar-open');
+        }
+
+        if (mode === 'save') {
+            setTimeout(() => newStateNameInput.focus(), 300); // Focus after transition
+        }
+
+        if (fabLoad) fabLoad.setAttribute('aria-expanded', 'true');
     }
-    menuToggleButton.addEventListener('click', toggleSidebar);
 
     // --- Empty State & Samples Modal Logic ---
     function updateEmptyStateVisibility() {
@@ -500,9 +600,38 @@ document.addEventListener('DOMContentLoaded', () => {
         if (slices.length === 0) {
             emptyState.style.display = 'flex';
             mainContent.style.display = 'none';
+            // Use visibility instead of display:none to avoid shifting other buttons in the flex column
+            if (fabShareCurrent) {
+                fabShareCurrent.style.visibility = 'hidden';
+                fabShareCurrent.style.opacity = '0';
+                fabShareCurrent.style.height = '0';
+                fabShareCurrent.style.marginTop = '-12px'; // Compensate gap
+                fabShareCurrent.style.pointerEvents = 'none';
+            }
+            if (fabClearCurrent) {
+                fabClearCurrent.style.visibility = 'hidden';
+                fabClearCurrent.style.opacity = '0';
+                fabClearCurrent.style.height = '0';
+                fabClearCurrent.style.marginTop = '-12px'; // Compensate gap
+                fabClearCurrent.style.pointerEvents = 'none';
+            }
         } else {
             emptyState.style.display = 'none';
             mainContent.style.display = 'block';
+            if (fabShareCurrent) {
+                fabShareCurrent.style.visibility = 'visible';
+                fabShareCurrent.style.opacity = '1';
+                fabShareCurrent.style.height = '48px';
+                fabShareCurrent.style.marginTop = '0';
+                fabShareCurrent.style.pointerEvents = 'auto';
+            }
+            if (fabClearCurrent) {
+                fabClearCurrent.style.visibility = 'visible';
+                fabClearCurrent.style.opacity = '1';
+                fabClearCurrent.style.height = '48px';
+                fabClearCurrent.style.marginTop = '0';
+                fabClearCurrent.style.pointerEvents = 'auto';
+            }
         }
     }
 
@@ -769,7 +898,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         };
 
-        myChart.setOption(option);
+        myChart.setOption(option, true);
     }
 
     function renderApp() {
@@ -1004,6 +1133,8 @@ document.addEventListener('DOMContentLoaded', () => {
         loadCurrentWorkingState();
     }
     renderApp();
+    updateEmptyStateVisibility();
+
 
     window.addEventListener('resize', () => { renderSunburst(); });
 

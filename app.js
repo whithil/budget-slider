@@ -32,6 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const fabSave = document.getElementById('fabSave');
     const fabShareCurrent = document.getElementById('fabShareCurrent');
     const fabClearCurrent = document.getElementById('fabClearCurrent');
+    const installFabContainer = document.getElementById('installFabContainer');
     const fabInstall = document.getElementById('fabInstall');
 
     const sidebar = document.getElementById('sidebar');
@@ -148,7 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
         deferredPrompt = e;
-        if (fabInstall) fabInstall.style.display = 'flex';
+        if (installFabContainer) installFabContainer.style.display = 'flex';
     });
 
     if (fabInstall) {
@@ -158,7 +159,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 deferredPrompt.userChoice.then((choiceResult) => {
                     if (choiceResult.outcome === 'accepted') {
                         console.log('User accepted the install prompt');
-                        fabInstall.style.display = 'none';
+                        if (installFabContainer) installFabContainer.style.display = 'none';
                     }
                     deferredPrompt = null;
                 });
@@ -600,38 +601,30 @@ document.addEventListener('DOMContentLoaded', () => {
         if (slices.length === 0) {
             emptyState.style.display = 'flex';
             mainContent.style.display = 'none';
-            // Use visibility instead of display:none to avoid shifting other buttons in the flex column
-            if (fabShareCurrent) {
-                fabShareCurrent.style.visibility = 'hidden';
-                fabShareCurrent.style.opacity = '0';
-                fabShareCurrent.style.height = '0';
-                fabShareCurrent.style.marginTop = '-12px'; // Compensate gap
-                fabShareCurrent.style.pointerEvents = 'none';
-            }
-            if (fabClearCurrent) {
-                fabClearCurrent.style.visibility = 'hidden';
-                fabClearCurrent.style.opacity = '0';
-                fabClearCurrent.style.height = '0';
-                fabClearCurrent.style.marginTop = '-12px'; // Compensate gap
-                fabClearCurrent.style.pointerEvents = 'none';
-            }
+            // Hide the entire item (button + label) when in empty state
+            [fabShareCurrent, fabClearCurrent].forEach(btn => {
+                const item = btn?.closest('.fab-item');
+                if (item) {
+                    item.style.visibility = 'hidden';
+                    item.style.opacity = '0';
+                    item.style.height = '0';
+                    item.style.marginTop = '-12px';
+                    item.style.pointerEvents = 'none';
+                }
+            });
         } else {
             emptyState.style.display = 'none';
             mainContent.style.display = 'block';
-            if (fabShareCurrent) {
-                fabShareCurrent.style.visibility = 'visible';
-                fabShareCurrent.style.opacity = '1';
-                fabShareCurrent.style.height = '48px';
-                fabShareCurrent.style.marginTop = '0';
-                fabShareCurrent.style.pointerEvents = 'auto';
-            }
-            if (fabClearCurrent) {
-                fabClearCurrent.style.visibility = 'visible';
-                fabClearCurrent.style.opacity = '1';
-                fabClearCurrent.style.height = '48px';
-                fabClearCurrent.style.marginTop = '0';
-                fabClearCurrent.style.pointerEvents = 'auto';
-            }
+            [fabShareCurrent, fabClearCurrent].forEach(btn => {
+                const item = btn?.closest('.fab-item');
+                if (item) {
+                    item.style.visibility = 'visible';
+                    item.style.opacity = '1';
+                    item.style.height = '48px';
+                    item.style.marginTop = '0';
+                    item.style.pointerEvents = 'auto';
+                }
+            });
         }
     }
 
@@ -676,7 +669,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         nextSliceId = slices.length;
         renderApp();
-        updateEmptyStateVisibility();
     }
 
     function openModal() {
@@ -899,12 +891,18 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         myChart.setOption(option, true);
+
+        // Ensure the chart fits its container, especially after being unhidden
+        setTimeout(() => {
+            if (myChart) myChart.resize();
+        }, 0);
     }
 
     function renderApp() {
+        // Update visibility BEFORE rendering chart to ensure container has dimensions
+        updateEmptyStateVisibility();
         renderSunburst();
         renderTable();
-        updateEmptyStateVisibility();
         saveCurrentWorkingState();
     }
 
@@ -1098,12 +1096,25 @@ document.addEventListener('DOMContentLoaded', () => {
         const unallocatedPercentageValue = 100 - currentTotalAllocatedPercentage;
 
         if (Math.abs(unallocatedPercentageValue) < 0.01) {
-            unallocatedPercentageDiv.textContent = 'Orçamento totalmente alocado.';
+            unallocatedPercentageDiv.textContent = '✓ Orçamento totalmente alocado.';
             unallocatedPercentageDiv.style.color = '#27ae60';
+            unallocatedPercentageDiv.style.backgroundColor = 'rgba(39, 174, 96, 0.1)';
+            unallocatedPercentageDiv.style.fontWeight = 'normal';
+        } else if (unallocatedPercentageValue < 0) {
+            // Budget exceeded
+            const exceededAmount = Math.abs(unallocatedPercentageValue / 100) * totalBudget;
+            const exceededPerc = Math.abs(unallocatedPercentageValue).toFixed(2);
+            unallocatedPercentageDiv.textContent = `⚠ Orçamento estourado! Excedido em R$ ${exceededAmount.toFixed(2)} (${exceededPerc}% acima do limite)`;
+            unallocatedPercentageDiv.style.color = '#c0392b';
+            unallocatedPercentageDiv.style.backgroundColor = 'rgba(231, 76, 60, 0.12)';
+            unallocatedPercentageDiv.style.fontWeight = 'bold';
         } else {
+            // Under budget
             const unallocatedAmount = (unallocatedPercentageValue / 100) * totalBudget;
-            unallocatedPercentageDiv.textContent = `Não alocado: R$ ${unallocatedAmount.toFixed(2)} (${unallocatedPercentageValue.toFixed(2)}%)`;
-            unallocatedPercentageDiv.style.color = '#c09853';
+            unallocatedPercentageDiv.textContent = `Restante: R$ ${unallocatedAmount.toFixed(2)} (${unallocatedPercentageValue.toFixed(2)}% disponível)`;
+            unallocatedPercentageDiv.style.color = '#856404';
+            unallocatedPercentageDiv.style.backgroundColor = 'rgba(192, 152, 83, 0.1)';
+            unallocatedPercentageDiv.style.fontWeight = 'normal';
         }
     }
 
@@ -1136,7 +1147,13 @@ document.addEventListener('DOMContentLoaded', () => {
     updateEmptyStateVisibility();
 
 
-    window.addEventListener('resize', () => { renderSunburst(); });
+    window.addEventListener('resize', () => {
+        if (myChart) {
+            myChart.resize();
+        } else {
+            renderSunburst();
+        }
+    });
 
     // Tab switching logic
     const navItems = document.querySelectorAll('.nav-item');

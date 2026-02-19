@@ -16,28 +16,44 @@
 </head>
 
 <body>
+    <div class="fab-container top-right" id="installFabContainer" style="display: none;">
+        <div class="fab-item">
+            <span class="fab-label">Usar Offline</span>
+            <button id="fabInstall" class="fab" aria-label="Instalar aplicativo" title="Usar Offline">
+                <span class="material-icons">get_app</span>
+            </button>
+        </div>
+    </div>
+
     <div class="fab-container" id="fabContainer">
         <button id="fabMain" class="fab main-fab" aria-label="Abrir menu de ações" title="Menu">
             <span class="material-icons">menu</span>
         </button>
         <div class="fab-options" id="fabOptions">
-            <button id="fabLoad" class="fab" aria-label="Carregar orçamentos salvos" title="Carregar Orçamentos">
-                <span class="material-icons">folder_open</span>
-            </button>
-            <button id="fabSave" class="fab" aria-label="Salvar orçamento atual" title="Salvar Atual">
-                <span class="material-icons">save</span>
-            </button>
-            <button id="fabShareCurrent" class="fab" aria-label="Compartilhar orçamento atual"
-                title="Compartilhar Orçamento">
-                <span class="material-icons">share</span>
-            </button>
-            <button id="fabClearCurrent" class="fab" aria-label="Limpar orçamento atual" title="Limpar Orçamento">
-                <span class="material-icons">delete_sweep</span>
-            </button>
-            <button id="fabInstall" class="fab" aria-label="Instalar aplicativo" title="Instalar App"
-                style="display: none;">
-                <span class="material-icons">get_app</span>
-            </button>
+            <div class="fab-item">
+                <span class="fab-label">Carregar</span>
+                <button id="fabLoad" class="fab" aria-label="Carregar orçamentos salvos" title="Carregar">
+                    <span class="material-icons">folder_open</span>
+                </button>
+            </div>
+            <div class="fab-item">
+                <span class="fab-label">Salvar</span>
+                <button id="fabSave" class="fab" aria-label="Salvar orçamento atual" title="Salvar">
+                    <span class="material-icons">save</span>
+                </button>
+            </div>
+            <div class="fab-item">
+                <span class="fab-label">Compartilhar</span>
+                <button id="fabShareCurrent" class="fab" aria-label="Compartilhar orçamento atual" title="Compartilhar">
+                    <span class="material-icons">share</span>
+                </button>
+            </div>
+            <div class="fab-item">
+                <span class="fab-label">Limpar Tudo</span>
+                <button id="fabClearCurrent" class="fab" aria-label="Limpar orçamento atual" title="Limpar Tudo">
+                    <span class="material-icons">delete_sweep</span>
+                </button>
+            </div>
         </div>
     </div>
 
@@ -117,14 +133,7 @@
                 </div>
             </div>
 
-            <div id="chartView" class="tab-content active">
-
-                <div class="slider-wrapper">
-                    <div id="chart" class="budget-chart"></div>
-                </div>
-            </div>
-
-            <div id="tableView" class="tab-content">
+            <div id="tableView" class="tab-content active">
                 <div class="slices-table-container">
                     <div class="table-header-controls">
                         <h2>Detalhamento do Orçamento</h2>
@@ -148,17 +157,23 @@
                     <div id="unallocatedPercentage" class="unallocated-info"></div>
                 </div>
             </div>
+
+            <div id="chartView" class="tab-content">
+                <div class="slider-wrapper">
+                    <div id="chart" class="budget-chart"></div>
+                </div>
+            </div>
         </div>
 
         <!-- Bottom Navigation -->
         <nav class="bottom-nav">
-            <button class="nav-item active" data-tab="chartView">
-                <span class="material-icons">pie_chart</span>
-                <span class="nav-label">Gráfico</span>
-            </button>
-            <button class="nav-item" data-tab="tableView">
+            <button class="nav-item active" data-tab="tableView">
                 <span class="material-icons">table_chart</span>
                 <span class="nav-label">Tabela</span>
+            </button>
+            <button class="nav-item" data-tab="chartView">
+                <span class="material-icons">pie_chart</span>
+                <span class="nav-label">Gráfico</span>
             </button>
         </nav>
 

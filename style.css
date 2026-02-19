@@ -25,6 +25,11 @@ body {
     transition: margin-left .3s ease-in-out;
 }
 
+.fab-container.top-right {
+    left: auto;
+    right: 15px;
+}
+
 .fab-options {
     display: flex;
     flex-direction: column;
@@ -32,17 +37,81 @@ body {
     margin-top: 0;
     max-height: 0;
     opacity: 0;
-    overflow: hidden;
     transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
     pointer-events: none;
 }
 
 .fab-container.expanded .fab-options {
     margin-top: 12px;
-    max-height: 500px;
+    max-height: 800px;
     opacity: 1;
     pointer-events: auto;
 }
+
+.fab-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: max-content;
+    flex-direction: row;
+    /* Icon left, label right by default */
+}
+
+.fab-label {
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    color: #34495e;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    opacity: 0;
+    transform: translateX(-10px);
+    /* Slide in from the left */
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    pointer-events: none;
+    order: 2;
+    /* Label after icon */
+}
+
+.fab-item .fab {
+    order: 1;
+    /* Icon first */
+}
+
+.fab-container.expanded .fab-label {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.top-right .fab-item {
+    flex-direction: row;
+    /* Icon right, label left */
+}
+
+.top-right .fab-label {
+    transform: translateX(10px);
+    /* Slide in from the right */
+    order: 1;
+    /* Label before icon */
+}
+
+.top-right .fab-item .fab {
+    order: 2;
+    /* Icon last */
+}
+
+.top-right .fab-container.expanded .fab-label,
+.top-right .fab-label {
+    /* Always visible for top-right unless container is hidden */
+    opacity: 1;
+    transform: translateX(0);
+}
+
 
 .fab {
     width: 48px;
@@ -73,6 +142,17 @@ body {
 
 .fab-container.expanded .main-fab .material-icons {
     transform: rotate(90deg);
+}
+
+.fab#fabLoad {
+    background-color: #f1c40f;
+    /* Pastel Yellow */
+    color: #34495e;
+    /* Darker text for contrast */
+}
+
+.fab#fabLoad:hover {
+    background-color: #f39c12;
 }
 
 .fab#fabSave {
@@ -632,14 +712,11 @@ h2 {
 
 .unallocated-info {
     margin-top: 15px;
-    padding: 10px;
-    background-color: #fdf7e3;
-    border: 1px solid #f5e0a0;
-    border-radius: 5px;
+    padding: 10px 14px;
+    border-radius: 8px;
     text-align: center;
-    font-weight: bold;
-    color: #c09853;
     font-size: 0.9em;
+    transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .color-col {

@@ -609,6 +609,11 @@ h2 {
     margin-top: 15px;
 }
 
+/* Mobile percentage badge - hidden on desktop */
+.mobile-percentage-badge {
+    display: none;
+}
+
 #slicesTable th,
 #slicesTable td {
     border: 1px solid #ddd;
@@ -1566,4 +1571,125 @@ tr:hover .inline-delete-item-btn {
 
 .category-row td {
     border-bottom: 2px solid rgba(0, 0, 0, 0.1);
+}
+
+
+/* ============================================= */
+/* =====  MOBILE RESPONSIVENESS (≤599px)  ====== */
+/* ============================================= */
+@media (max-width: 599px) {
+
+    /* --- 1. Always-visible action icons (touch-friendly) --- */
+    .inline-delete-btn,
+    .inline-delete-item-btn {
+        opacity: 0.6 !important;
+    }
+
+    /* --- 2. Table layout: hide percentage column, show inline badge --- */
+    #slicesTable {
+        min-width: unset;
+    }
+
+    #slicesTable th.percentage-col,
+    #slicesTable td.percentage-col {
+        display: none;
+    }
+
+    .mobile-percentage-badge {
+        display: block;
+        font-size: 0.75em;
+        color: rgba(0, 0, 0, 0.55);
+        margin-top: 3px;
+        font-weight: 600;
+        line-height: 1;
+        padding: 3px 6px;
+        border-radius: 4px;
+        border: 1px solid rgba(0, 0, 0, 0.06);
+        width: fit-content;
+    }
+
+    .category-row .mobile-percentage-badge {
+        font-size: 0.8em;
+        font-weight: 700;
+        color: rgba(0, 0, 0, 0.65);
+        padding: 4px 8px;
+    }
+
+    /* --- 3. Tighter padding & widths --- */
+    #slicesTable th,
+    #slicesTable td {
+        padding: 6px 4px;
+        font-size: 0.85em;
+    }
+
+    .color-col {
+        min-width: 36px;
+    }
+
+    .name-col,
+    .name-col-contextual {
+        min-width: unset;
+    }
+
+    .amount-col {
+        min-width: unset;
+    }
+
+    /* Allow text wrapping in name cells */
+    #slicesTable td.name-col-contextual {
+        white-space: normal;
+    }
+
+    .slice-name-input {
+        font-size: 0.9em;
+        padding: 4px;
+    }
+
+    .category-name {
+        font-size: 1em !important;
+    }
+
+    .item-name {
+        font-size: 0.85em !important;
+    }
+
+    /* --- 4. Smaller adjustment buttons --- */
+    .adjust-btn {
+        width: 26px;
+        height: 26px;
+    }
+
+    .adjust-btn .material-icons {
+        font-size: 16px;
+    }
+
+    .item-row .slice-amount-input {
+        width: 65px;
+        padding: 4px 6px;
+        font-size: 0.85em;
+    }
+
+    .amount-control-group {
+        gap: 2px;
+    }
+
+    /* --- 5. Contextual add button adjustments --- */
+    .contextual-add-btn {
+        width: 24px;
+        height: 24px;
+        bottom: -12px;
+    }
+
+    .contextual-add-btn .material-icons {
+        font-size: 16px !important;
+    }
+
+    /* --- 6. Table header controls --- */
+    .table-header-controls h2 {
+        font-size: 1.1em;
+    }
+
+    .name-col-contextual {
+        padding-right: 30px !important;
+    }
 }

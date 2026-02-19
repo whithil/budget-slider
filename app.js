@@ -960,9 +960,16 @@ document.addEventListener('DOMContentLoaded', () => {
             addItemBtn.title = "Adicionar Item";
             addItemBtn.onclick = () => addItem(slice.id);
 
+            const mobilePctBadge = document.createElement('span');
+            mobilePctBadge.className = 'mobile-percentage-badge';
+            mobilePctBadge.textContent = `${catPercentage.toFixed(2)}%`;
+            const catBarColorMobile = lightenColor(slice.color, 70);
+            mobilePctBadge.style.background = `linear-gradient(90deg, ${catBarColorMobile} ${catPercentage}%, transparent ${catPercentage}%)`;
+
             nameWrapper.appendChild(nameInput);
             nameWrapper.appendChild(deleteBtn);
             nameCell.appendChild(nameWrapper);
+            nameCell.appendChild(mobilePctBadge);
             nameCell.appendChild(addItemBtn);
 
             // Percentage (Derived) with Progress Bar
@@ -1017,9 +1024,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 deleteItemBtn.title = "Remover Item";
                 deleteItemBtn.onclick = () => removeItem(slice.id, idx);
 
+                const itemMobilePctBadge = document.createElement('span');
+                itemMobilePctBadge.className = 'mobile-percentage-badge';
+                itemMobilePctBadge.textContent = `${itemPerc.toFixed(2)}%`;
+                const childBarColorMobile = lightenColor(slice.color, 80);
+                const parentShadeColorMobile = lightenColor(slice.color, 90);
+                const catPercVal = slice.percentage || 0;
+                const childGlobalPercMobile = (itemPerc / 100) * catPercVal;
+                itemMobilePctBadge.style.background = `linear-gradient(90deg, ${childBarColorMobile} ${childGlobalPercMobile.toFixed(2)}%, ${parentShadeColorMobile} ${childGlobalPercMobile.toFixed(2)}% ${catPercVal.toFixed(2)}%, transparent ${catPercVal.toFixed(2)}%)`;
+
                 nameWrapper.appendChild(itemNameInput);
                 nameWrapper.appendChild(deleteItemBtn);
                 itemNameCell.appendChild(nameWrapper);
+                itemNameCell.appendChild(itemMobilePctBadge);
 
                 // Item Percentage with Nested Progress Bar
                 const itemPercentageCell = itemRow.insertCell();

@@ -95,6 +95,55 @@
             </div>
         </div>
     </div>
+    <!-- Periodicity Modal -->
+    <div id="periodicityModal" class="modal-overlay" style="display: none;">
+        <div class="modal periodicity-modal">
+            <div class="modal-header">
+                <h2>Repetição do Gasto</h2>
+                <button id="closePeriodicityBtn" class="close-modal-btn">
+                    <span class="material-icons">close</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p class="modal-subtitle">Defina quantas vezes e a frequência da repetição.</p>
+                <div class="picker-container">
+                    <div class="picker-column" id="countPickerColumn">
+                        <!-- Instert Count items here via JS -->
+                    </div>
+                    <div class="picker-column" id="periodPickerColumn">
+                        <!-- Insert Period items here via JS -->
+                    </div>
+                    <div class="picker-highlight"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="savePeriodicityBtn" class="primary-button">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Navigation for Time Mode -->
+    <header class="top-time-nav" id="topTimeNav">
+        <div class="time-segments">
+            <button class="time-segment" data-mode="week">Semana</button>
+            <button class="time-segment active" data-mode="month">Mês</button>
+            <button class="time-segment" data-mode="year">Ano</button>
+        </div>
+    </header>
+
+    <!-- Zoom Out Invite -->
+    <div class="zoom-out-invite" id="zoomOutBtn">
+        <span class="material-icons">keyboard_double_arrow_up</span>
+        <span class="material-icons zoom-icon">search</span>
+    </div>
+
+    <!-- Floating Pagination Chevrons -->
+    <button class="pagination-chevron left" id="pagePrevBtn" aria-label="Período Anterior">
+        <span class="material-icons">chevron_left</span>
+    </button>
+    <button class="pagination-chevron right" id="pageNextBtn" aria-label="Próximo Período">
+        <span class="material-icons">chevron_right</span>
+    </button>
 
     <div class="app-container" id="appContainer">
         <!-- Page title removed as requested -->
@@ -124,8 +173,7 @@
         </div>
 
         <!-- View Containers -->
-        <div id="mainContent">
-
+        <div id="mainContent" class="view-panel active-panel">
 
             <div id="tableView" class="tab-content active">
                 <div class="slices-table-container">
@@ -156,6 +204,23 @@
                 <div class="slider-wrapper">
                     <div id="chart" class="budget-chart"></div>
                 </div>
+            </div>
+        </div>
+
+        <!-- Calendar View (Zoomed Out) -->
+        <div id="calendarView" class="view-panel" style="display: none;">
+            <div class="calendar-header">
+                <button id="zoomInBtn" class="primary-button zoom-in-btn">
+                    <span class="material-icons">keyboard_double_arrow_down</span> Voltar ao Detalhe
+                </button>
+                <div class="calendar-title-area">
+                    <h2 id="calendarTitle">Mês Atual</h2>
+                    <span class="calendar-budget-limit" id="calendarBudgetLimit">Limite: R$ 0,00</span>
+                </div>
+            </div>
+
+            <div id="calendarGrid" class="calendar-grid">
+                <!-- JavaScript will generate the grid cells here -->
             </div>
         </div>
 

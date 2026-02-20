@@ -17,22 +17,80 @@ document.addEventListener('DOMContentLoaded', () => {
     const totalBudgetInput = document.getElementById('totalBudgetInput');
     const unallocatedPercentageDiv = document.getElementById('unallocatedPercentage');
 
+    // V4 Time Nav Elements
+    const topTimeNav = document.getElementById('topTimeNav');
+    const timeSegments = document.querySelectorAll('.time-segment');
+    const zoomOutBtn = document.getElementById('zoomOutBtn');
+    const pagePrevBtn = document.getElementById('pagePrevBtn');
+    const pageNextBtn = document.getElementById('pageNextBtn');
+    const calendarView = document.getElementById('calendarView');
+    const zoomInBtn = document.getElementById('zoomInBtn');
+
     // Application State
     let slices = [];
-    let totalBudget = 1000;
+    let defaultTotalBudget = 1000;
+    let periodBudgets = {}; // V4 Phase 5: map of "YYYY-MM" to budget values
     let nextSliceId = 0;
     let allSavedStates = [];
+
+    // V4 Temporal State
+    let globalViewMode = 'month'; // 'week', 'month', 'year'
+    let currentDate = new Date();
+
+    function getCurrentPeriodKey() {
+        if (globalViewMode === 'week') {
+            const start = new Date(currentDate);
+            const day = start.getDay();
+            const diff = start.getDate() - day + (day === 0 ? -6 : 1);
+            start.setDate(diff);
+            return `week-${start.getFullYear()}-${start.getMonth() + 1}-${start.getDate()}`;
+        } else if (globalViewMode === 'month') {
+            return `month-${currentDate.getFullYear()}-${currentDate.getMonth() + 1}`;
+        } else if (globalViewMode === 'year') {
+            return `year-${currentDate.getFullYear()}`;
+        }
+        return 'default';
+    }
+
+    function getCurrentPeriodBudget() {
+        const key = getCurrentPeriodKey();
+        return periodBudgets[key] !== undefined ? periodBudgets[key] : defaultTotalBudget;
+    }
+
+    function setCurrentPeriodBudget(amount) {
+        const key = getCurrentPeriodKey();
+        periodBudgets[key] = amount;
+    }
+
+    // Periodicity State
+    let currentPeriodicityItem = null; // { sliceId, itemIndex }
+    const PERIOD_OPTIONS = [
+        { value: 'days', label: 'Dias' },
+        { value: 'weeks', label: 'Semanas' },
+        { value: 'fortnights', label: 'Quinzenas' },
+        { value: 'months', label: 'Meses' },
+        { value: 'bimonthly', label: 'Bimestres' },
+        { value: 'quarters', label: 'Trimestres' },
+        { value: 'semesters', label: 'Semestres' },
+        { value: 'years', label: 'Anos' }
+    ];
 
     const CURRENT_STATE_LS_KEY_SLICES = 'budgetSlices_v3_sunburst';
     const CURRENT_STATE_LS_KEY_BUDGET = 'totalBudget_v3_sunburst';
     const ALL_STATES_LS_KEY = 'budgetManager_allStates_v3_sunburst';
 
-    // Samples Modal Elements
     const samplesModal = document.getElementById('samplesModal');
     const closeModalBtn = document.getElementById('closeModalBtn');
     const openSamplesBtn = document.getElementById('openSamplesBtn');
     const addFirstCategoryBtn = document.getElementById('addFirstCategoryBtn');
     const samplesGrid = document.getElementById('samplesGrid');
+
+    // Periodicity Modal Elements
+    const periodicityModal = document.getElementById('periodicityModal');
+    const closePeriodicityBtn = document.getElementById('closePeriodicityBtn');
+    const savePeriodicityBtn = document.getElementById('savePeriodicityBtn');
+    const countPickerColumn = document.getElementById('countPickerColumn');
+    const periodPickerColumn = document.getElementById('periodPickerColumn');
 
     const fabContainer = document.getElementById('fabContainer');
     const fabMain = document.getElementById('fabMain');
@@ -270,7 +328,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- State Management for CURRENT WORKING SET ---
     function saveCurrentWorkingState() {
         localStorage.setItem(CURRENT_STATE_LS_KEY_SLICES, JSON.stringify(slices));
-        localStorage.setItem(CURRENT_STATE_LS_KEY_BUDGET, totalBudget.toString());
+        localStorage.setItem(CURRENT_STATE_LS_KEY_BUDGET, defaultTotalBudget.toString());
+        localStorage.setItem('budgetManager_periodBudgets_v4', JSON.stringify(periodBudgets));
     }
 
     function loadSampleData() {
@@ -310,10 +369,11 @@ document.addEventListener('DOMContentLoaded', () => {
         ];
 
         // Ensure total budget is valid
-        if (totalBudget <= 0) {
-            totalBudget = 1000;
-            totalBudgetInput.value = 1000;
+        if (defaultTotalBudget <= 0) {
+            defaultTotalBudget = 1000;
         }
+        periodBudgets = {};
+        totalBudgetInput.value = getCurrentPeriodBudget();
 
         normalizePercentages();
         saveCurrentWorkingState();
@@ -322,8 +382,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function loadCurrentWorkingState() {
         const savedTotalBudget = localStorage.getItem(CURRENT_STATE_LS_KEY_BUDGET);
-        totalBudget = savedTotalBudget ? parseFloat(savedTotalBudget) : 1000;
-        totalBudgetInput.value = totalBudget;
+        defaultTotalBudget = savedTotalBudget ? parseFloat(savedTotalBudget) : 1000;
+        const savedPeriodBudgets = localStorage.getItem('budgetManager_periodBudgets_v4');
+        try { periodBudgets = savedPeriodBudgets ? JSON.parse(savedPeriodBudgets) : {}; } catch (e) { periodBudgets = {}; }
+
+        totalBudgetInput.value = getCurrentPeriodBudget();
 
         const savedSlices = localStorage.getItem(CURRENT_STATE_LS_KEY_SLICES);
         let tempNextId = 0;
@@ -462,7 +525,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         const newState = {
             id: Date.now(), name: name,
-            slices: JSON.parse(JSON.stringify(slices)), totalBudget: totalBudget
+            slices: JSON.parse(JSON.stringify(slices)),
+            defaultTotalBudget: defaultTotalBudget,
+            periodBudgets: JSON.parse(JSON.stringify(periodBudgets))
         };
         allSavedStates.push(newState);
         saveAllNamedStates(); renderSavedStatesList();
@@ -474,8 +539,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const stateToLoad = allSavedStates.find(s => s.id === stateId);
         if (stateToLoad) {
             slices = JSON.parse(JSON.stringify(stateToLoad.slices));
-            totalBudget = stateToLoad.totalBudget;
-            totalBudgetInput.value = totalBudget;
+            defaultTotalBudget = stateToLoad.defaultTotalBudget || stateToLoad.totalBudget || 1000;
+            periodBudgets = stateToLoad.periodBudgets ? JSON.parse(JSON.stringify(stateToLoad.periodBudgets)) : {};
+            totalBudgetInput.value = getCurrentPeriodBudget();
             let tempNextId = 0;
             if (slices.length > 0) {
                 const maxId = Math.max(...slices.map(s => typeof s.id === 'number' ? s.id : -1));
@@ -518,7 +584,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const idToMatch = Number(stateId);
         const stateToShare = allSavedStates.find(s => Number(s.id) === idToMatch);
         if (!stateToShare) { alert("Erro: Orçamento não encontrado para compartilhar."); return; }
-        const dataToShare = { slices: stateToShare.slices, totalBudget: stateToShare.totalBudget };
+        const dataToShare = {
+            slices: stateToShare.slices,
+            defaultTotalBudget: stateToShare.defaultTotalBudget || stateToShare.totalBudget || 1000,
+            periodBudgets: stateToShare.periodBudgets || {}
+        };
         try {
             const jsonString = JSON.stringify(dataToShare);
             const base64String = btoa(unescape(encodeURIComponent(jsonString)));
@@ -544,10 +614,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 // UTF-8 safe base64 decoding
                 const jsonString = decodeURIComponent(escape(atob(stateDataParam)));
                 const sharedState = JSON.parse(jsonString);
-                if (sharedState && Array.isArray(sharedState.slices) && typeof sharedState.totalBudget === 'number') {
+                if (sharedState && Array.isArray(sharedState.slices)) {
                     slices = JSON.parse(JSON.stringify(sharedState.slices));
-                    totalBudget = sharedState.totalBudget;
-                    totalBudgetInput.value = totalBudget;
+                    defaultTotalBudget = sharedState.defaultTotalBudget || sharedState.totalBudget || 1000;
+                    periodBudgets = sharedState.periodBudgets ? JSON.parse(JSON.stringify(sharedState.periodBudgets)) : {};
+                    totalBudgetInput.value = getCurrentPeriodBudget();
                     let tempNextId = 0;
                     if (slices.length > 0) {
                         const seenIds = new Set();
@@ -771,8 +842,9 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateSliceByAmount(sliceId, newAmount) {
         const slice = slices.find(s => s.id === sliceId);
         if (slice && slice.children.length === 0) {
-            if (totalBudget > 0) {
-                slice.percentage = parseFloat(((newAmount / totalBudget) * 100).toFixed(2));
+            const currentTotal = getCurrentPeriodBudget();
+            if (currentTotal > 0) {
+                slice.percentage = parseFloat(((newAmount / currentTotal) * 100).toFixed(2));
             }
             renderApp();
         }
@@ -780,9 +852,166 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateTotalBudget() {
         const newTotal = parseFloat(totalBudgetInput.value);
-        totalBudget = (!isNaN(newTotal) && newTotal >= 0) ? newTotal : totalBudget;
-        if (isNaN(newTotal) || newTotal < 0) totalBudgetInput.value = totalBudget;
+        if (!isNaN(newTotal) && newTotal >= 0) {
+            setCurrentPeriodBudget(newTotal);
+        } else {
+            totalBudgetInput.value = getCurrentPeriodBudget();
+        }
         renderApp();
+    }
+
+    // --- Periodicity Modal Logic ---
+    window.openPeriodicityModal = function (sliceId, idx) {
+        currentPeriodicityItem = { sliceId, itemIndex: idx };
+        const slice = slices.find(s => s.id === sliceId);
+        const item = slice.children[idx];
+
+        // Default or existing periodicity
+        let currentCount = 1;
+        let currentPeriod = 'months';
+
+        if (item.periodicity) {
+            currentCount = item.periodicity.count || 1;
+            currentPeriod = item.periodicity.period || 'months';
+        }
+
+        populatePicker(countPickerColumn, Array.from({ length: 360 }, (_, i) => i + 1), currentCount);
+        populatePicker(periodPickerColumn, PERIOD_OPTIONS, currentPeriod);
+
+        periodicityModal.style.display = 'flex';
+        // Small delay to allow CSS transitions if needed, scroll to center
+        setTimeout(() => {
+            centerScroll(countPickerColumn);
+            centerScroll(periodPickerColumn);
+        }, 10);
+    };
+
+    function closePeriodicityModal() {
+        periodicityModal.style.display = 'none';
+        currentPeriodicityItem = null;
+    }
+
+    if (closePeriodicityBtn) {
+        closePeriodicityBtn.addEventListener('click', closePeriodicityModal);
+    }
+
+    if (periodicityModal) {
+        periodicityModal.addEventListener('click', (e) => {
+            if (e.target === periodicityModal) closePeriodicityModal();
+        });
+    }
+
+    function populatePicker(columnEl, items, selectedValue) {
+        columnEl.innerHTML = '';
+
+        // Add padding spaces
+        const padCount = 2; // For visual center
+        for (let i = 0; i < padCount; i++) {
+            const pad = document.createElement('div');
+            pad.className = 'picker-item empty';
+            columnEl.appendChild(pad);
+        }
+
+        items.forEach(item => {
+            const val = typeof item === 'object' ? item.value : item;
+            const label = typeof item === 'object' ? item.label : item;
+            const div = document.createElement('div');
+            div.className = 'picker-item';
+            div.dataset.value = val;
+            div.textContent = label;
+            if (val == selectedValue) {
+                div.classList.add('selected');
+                // The scroll centering happens later
+            }
+            // Click to select directly
+            div.addEventListener('click', () => {
+                selectPickerItem(columnEl, div);
+            });
+            columnEl.appendChild(div);
+        });
+
+        for (let i = 0; i < padCount; i++) {
+            const pad = document.createElement('div');
+            pad.className = 'picker-item empty';
+            columnEl.appendChild(pad);
+        }
+
+        // Add scroll snapped styling logic
+        columnEl.addEventListener('scroll', () => {
+            updateSelectedPickerItem(columnEl);
+        });
+    }
+
+    function selectPickerItem(columnEl, itemEl) {
+        const itemHeight = itemEl.offsetHeight || 40; // Default fallback height
+        // Center the item
+        const containerCenter = columnEl.offsetHeight / 2;
+        const itemTop = itemEl.offsetTop;
+        columnEl.scrollTo({
+            top: itemTop - containerCenter + (itemHeight / 2),
+            behavior: 'smooth'
+        });
+    }
+
+    function updateSelectedPickerItem(columnEl) {
+        let items = Array.from(columnEl.querySelectorAll('.picker-item:not(.empty)'));
+        if (!items.length) return;
+
+        const containerCenter = columnEl.scrollTop + (columnEl.offsetHeight / 2);
+
+        let closest = items[0];
+        let minDiff = Infinity;
+
+        items.forEach(item => {
+            const itemCenter = item.offsetTop + (item.offsetHeight / 2);
+            const diff = Math.abs(containerCenter - itemCenter);
+            if (diff < minDiff) {
+                minDiff = diff;
+                closest = item;
+            }
+        });
+
+        items.forEach(item => item.classList.remove('selected'));
+        closest.classList.add('selected');
+    }
+
+    function centerScroll(columnEl) {
+        let selected = columnEl.querySelector('.picker-item.selected');
+        if (selected) {
+            selectPickerItem(columnEl, selected);
+        }
+    }
+
+    function getSelectedPickerValue(columnEl) {
+        const selected = columnEl.querySelector('.picker-item.selected');
+        return selected ? selected.dataset.value : null;
+    }
+
+    if (savePeriodicityBtn) {
+        savePeriodicityBtn.addEventListener('click', () => {
+            if (!currentPeriodicityItem) return;
+
+            const slice = slices.find(s => s.id === currentPeriodicityItem.sliceId);
+            if (slice && slice.children[currentPeriodicityItem.itemIndex]) {
+                const item = slice.children[currentPeriodicityItem.itemIndex];
+
+                const countVal = parseInt(getSelectedPickerValue(countPickerColumn), 10);
+                const periodVal = getSelectedPickerValue(periodPickerColumn);
+
+                // Initialize or update periodicity object
+                item.periodicity = {
+                    startDate: new Date().toISOString().split('T')[0], // Starts today by default when created
+                    count: countVal,
+                    interval: 1, // Fixed to 1 for now (e.g. Every 1 month)
+                    period: periodVal
+                };
+
+                console.log(`Saved Periodicity for ${item.name}: ${countVal} ${periodVal}`);
+                saveCurrentWorkingState();
+                renderApp();
+            }
+            closePeriodicityModal();
+        });
     }
 
     function normalizePercentages() {
@@ -823,14 +1052,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- ECharts Sunburst Rendering ---
     let myChart = null;
 
-    function renderSunburst() {
+    function renderSunburst(dataSlices = slices) {
         if (!myChart) {
             myChart = echarts.init(chartContainer);
         }
 
         // Transform slices data to ECharts format
-        const transformData = (dataSlices) => {
-            return dataSlices.map(s => {
+        const transformData = (dSlices) => {
+            return dSlices.map(s => {
                 const itemColor = s.color;
                 const item = {
                     name: s.name,
@@ -851,7 +1080,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         };
 
-        const chartData = transformData(slices);
+        const chartData = transformData(dataSlices);
 
         const option = {
             backgroundColor: 'transparent',
@@ -859,7 +1088,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 trigger: 'item',
                 formatter: params => {
                     const val = params.value || 0;
-                    const perc = ((val / totalBudget) * 100).toFixed(2);
+                    const perc = ((val / getCurrentPeriodBudget()) * 100).toFixed(2);
                     return `${params.name}<br/>Valor: R$ ${val.toFixed(2)} (${perc}%)`;
                 }
             },
@@ -915,14 +1144,258 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderApp() {
         // Update visibility BEFORE rendering chart to ensure container has dimensions
         updateEmptyStateVisibility();
-        renderSunburst();
-        renderTable();
+
+        // --- V4 Engine: Filter items based on current time view ---
+        const activeSlices = filterSlicesForCurrentTime();
+
+        renderSunburst(activeSlices);
+        renderTable(activeSlices);
+        renderCalendar(activeSlices); // Synchronize Calendar View
         saveCurrentWorkingState();
     }
 
-    function renderTable() {
+    // --- V4 Calendar Engine ---
+    function renderCalendar(activeSlices = filterSlicesForCurrentTime()) {
+        if (!calendarView) return;
+
+        const calendarGrid = document.getElementById('calendarGrid');
+        const calendarTitle = document.getElementById('calendarTitle');
+        const calendarBudgetLimit = document.getElementById('calendarBudgetLimit');
+        if (!calendarGrid || !calendarTitle || !calendarBudgetLimit) return;
+
+        calendarGrid.innerHTML = ''; // clear
+
+        // Header Title Update
+        if (globalViewMode === 'week') {
+            const start = new Date(currentDate);
+            const day = start.getDay();
+            const diff = start.getDate() - day + (day === 0 ? -6 : 1);
+            start.setDate(diff);
+            const end = new Date(start);
+            end.setDate(start.getDate() + 6);
+            calendarTitle.textContent = `${start.toLocaleDateString('pt-BR')} - ${end.toLocaleDateString('pt-BR')}`;
+        } else if (globalViewMode === 'month') {
+            const monthName = currentDate.toLocaleString('pt-BR', { month: 'long' });
+            calendarTitle.textContent = `${monthName.charAt(0).toUpperCase() + monthName.slice(1)} ${currentDate.getFullYear()}`;
+        } else if (globalViewMode === 'year') {
+            calendarTitle.textContent = `Ano de ${currentDate.getFullYear()}`;
+        }
+
+        // Period budget limit
+        calendarBudgetLimit.textContent = `Limite: R$ ${getCurrentPeriodBudget().toFixed(2)}`;
+
+        // Generate Grid 
+        if (globalViewMode === 'month' || globalViewMode === 'week') {
+            calendarGrid.style.gridTemplateColumns = 'repeat(7, 1fr)';
+            const daysOfWeek = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+            daysOfWeek.forEach(d => {
+                const head = document.createElement('div');
+                head.className = 'calendar-day-header';
+                head.textContent = d;
+                calendarGrid.appendChild(head);
+            });
+
+            // Organize events by day (we approximate to startDate day for visual simulation)
+            const eventsByDayMonth = {}; // Use "MM-DD" key for broader mapping
+            activeSlices.forEach(slice => {
+                slice.children.forEach(item => {
+                    if (item.periodicity && item.periodicity.startDate) {
+                        const sDate = new Date(item.periodicity.startDate);
+                        const key = `${sDate.getMonth()}-${sDate.getDate()}`;
+                        if (!eventsByDayMonth[key]) eventsByDayMonth[key] = [];
+                        eventsByDayMonth[key].push({ name: item.name, color: slice.color, value: item.value });
+                    } else {
+                        // Monthly fallback = day 1
+                        const key = `${currentDate.getMonth()}-1`;
+                        if (!eventsByDayMonth[key]) eventsByDayMonth[key] = [];
+                        eventsByDayMonth[key].push({ name: item.name, color: slice.color, value: item.value });
+                    }
+                });
+            });
+
+            if (globalViewMode === 'month') {
+                const year = currentDate.getFullYear();
+                const month = currentDate.getMonth();
+                const firstDayOfMonth = new Date(year, month, 1).getDay();
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+                for (let i = 0; i < firstDayOfMonth; i++) {
+                    const emptyCell = document.createElement('div');
+                    emptyCell.className = 'calendar-cell empty';
+                    calendarGrid.appendChild(emptyCell);
+                }
+
+                for (let i = 1; i <= daysInMonth; i++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'calendar-cell has-date';
+                    const dayLabel = document.createElement('div');
+                    dayLabel.className = 'calendar-date-number';
+                    dayLabel.textContent = i;
+                    cell.appendChild(dayLabel);
+
+                    const key = `${month}-${i}`;
+                    if (eventsByDayMonth[key]) {
+                        eventsByDayMonth[key].forEach(evt => {
+                            const eventDiv = document.createElement('div');
+                            eventDiv.className = 'calendar-event';
+                            eventDiv.style.backgroundColor = evt.color;
+                            eventDiv.textContent = evt.name;
+                            eventDiv.title = `${evt.name}: R$ ${((evt.value / 100) * getCurrentPeriodBudget()).toFixed(2)}`;
+                            cell.appendChild(eventDiv);
+                        });
+                    }
+                    calendarGrid.appendChild(cell);
+                }
+
+                const totalCellsSoFar = firstDayOfMonth + daysInMonth;
+                const remainingCells = (7 - (totalCellsSoFar % 7)) % 7;
+                for (let i = 0; i < remainingCells; i++) {
+                    const emptyCell = document.createElement('div');
+                    emptyCell.className = 'calendar-cell empty';
+                    calendarGrid.appendChild(emptyCell);
+                }
+
+            } else if (globalViewMode === 'week') {
+                // Determine the 7 days of the current week (Sun-Sat)
+                const startOfWeek = new Date(currentDate);
+                startOfWeek.setDate(currentDate.getDate() - currentDate.getDay()); // go back to Sunday
+
+                for (let i = 0; i < 7; i++) {
+                    const printDate = new Date(startOfWeek);
+                    printDate.setDate(startOfWeek.getDate() + i);
+
+                    const cell = document.createElement('div');
+                    cell.className = 'calendar-cell has-date';
+                    const dayLabel = document.createElement('div');
+                    dayLabel.className = 'calendar-date-number';
+                    // Show Month/Day for week view clarity
+                    dayLabel.textContent = `${printDate.getDate()}/${printDate.getMonth() + 1}`;
+                    cell.appendChild(dayLabel);
+
+                    const key = `${printDate.getMonth()}-${printDate.getDate()}`;
+                    if (eventsByDayMonth[key]) {
+                        eventsByDayMonth[key].forEach(evt => {
+                            const eventDiv = document.createElement('div');
+                            eventDiv.className = 'calendar-event';
+                            eventDiv.style.backgroundColor = evt.color;
+                            eventDiv.textContent = evt.name;
+                            eventDiv.title = `${evt.name}: R$ ${((evt.value / 100) * getCurrentPeriodBudget()).toFixed(2)}`;
+                            cell.appendChild(eventDiv);
+                        });
+                    }
+                    calendarGrid.appendChild(cell);
+                }
+            }
+
+        } else if (globalViewMode === 'year') {
+            calendarGrid.style.gridTemplateColumns = 'repeat(4, 1fr)';
+
+            const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+
+            for (let i = 0; i < 12; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'calendar-cell';
+                cell.style.minHeight = '120px';
+                cell.style.alignItems = 'center';
+                cell.style.justifyContent = 'center';
+                cell.innerHTML = `<h3 style="color: var(--text-base); margin:0;">${monthNames[i]}</h3>
+                                  <span style="color: var(--text-light); font-size: 0.8em; margin-top: 5px;">Detalhamento Oculto no Zoom Anual</span>`;
+                calendarGrid.appendChild(cell);
+            }
+        }
+    }
+
+    // --- V4 Time Filtering Engine ---
+    function filterSlicesForCurrentTime() {
+        // Deep copy to avoid mutating the core state directly during rendering
+        const filteredSlices = JSON.parse(JSON.stringify(slices));
+
+        const viewStart = new Date(currentDate);
+        let viewEnd = new Date(currentDate);
+
+        // Define the bounds of the current view
+        if (globalViewMode === 'week') {
+            const day = viewStart.getDay();
+            const diff = viewStart.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
+            viewStart.setDate(diff);
+            viewEnd = new Date(viewStart);
+            viewEnd.setDate(viewStart.getDate() + 6);
+        } else if (globalViewMode === 'month') {
+            viewStart.setDate(1);
+            viewEnd.setMonth(viewEnd.getMonth() + 1);
+            viewEnd.setDate(0); // Last day of current month
+        } else if (globalViewMode === 'year') {
+            viewStart.setMonth(0, 1);
+            viewEnd.setMonth(11, 31);
+        }
+
+        // Set hours to boundaries for inclusive comparison
+        viewStart.setHours(0, 0, 0, 0);
+        viewEnd.setHours(23, 59, 59, 999);
+
+        // Filter items
+        filteredSlices.forEach(slice => {
+            const activeChildren = [];
+            slice.children.forEach(item => {
+                if (!item.periodicity) {
+                    // Items without periodicity are considered "always active" / monthly fixed by default in legacy
+                    activeChildren.push(item);
+                    return;
+                }
+
+                const itemStart = new Date(item.periodicity.startDate);
+                itemStart.setHours(0, 0, 0, 0);
+
+                let isActive = false;
+                const count = item.periodicity.count || 1;
+                const period = item.periodicity.period || 'months';
+
+                // Check all installments to see if any fall within the current view
+                for (let i = 0; i < count; i++) {
+                    const installmentDate = new Date(itemStart);
+
+                    // Add intervals
+                    if (period === 'days') installmentDate.setDate(installmentDate.getDate() + i);
+                    if (period === 'weeks') installmentDate.setDate(installmentDate.getDate() + (i * 7));
+                    if (period === 'fortnights') installmentDate.setDate(installmentDate.getDate() + (i * 14));
+                    if (period === 'months') installmentDate.setMonth(installmentDate.getMonth() + i);
+                    if (period === 'bimonthly') installmentDate.setMonth(installmentDate.getMonth() + (i * 2));
+                    if (period === 'quarters') installmentDate.setMonth(installmentDate.getMonth() + (i * 3));
+                    if (period === 'semesters') installmentDate.setMonth(installmentDate.getMonth() + (i * 6));
+                    if (period === 'years') installmentDate.setFullYear(installmentDate.getFullYear() + i);
+
+                    if (installmentDate >= viewStart && installmentDate <= viewEnd) {
+                        isActive = true;
+                        // In future sub-phases: calculate proportional amount if partial month/week
+                        break;
+                    }
+                }
+
+                if (isActive) {
+                    activeChildren.push(item);
+                }
+            });
+
+            slice.children = activeChildren;
+            // Recalculate slice percentage based ONLY on active children
+            if (slice.children.length > 0) {
+                slice.percentage = slice.children.reduce((sum, child) => sum + child.value, 0);
+            } else {
+                // If a category has no items this month, should it have 0%?
+                // For now, if no items, it contributes 0.
+                slice.percentage = 0;
+            }
+        });
+
+        // Filter out categories that have NO active items AND percentage is 0 
+        // (to clean up the view, but let's keep them for now to allow adding items contextually).
+
+        return filteredSlices;
+    }
+
+    function renderTable(dataSlices = slices) {
         slicesTableBody.innerHTML = '';
-        slices.forEach(slice => {
+        dataSlices.forEach(slice => {
             // Category Row
             const catRow = slicesTableBody.insertRow();
             catRow.className = 'category-row';
@@ -1001,7 +1474,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Amount (Derived)
             const amountCell = catRow.insertCell();
             amountCell.className = 'amount-col category-total';
-            const amount = (percentageValue / 100) * totalBudget;
+            const amount = (percentageValue / 100) * getCurrentPeriodBudget();
             amountCell.textContent = `R$ ${amount.toFixed(2)}`;
 
 
@@ -1044,12 +1517,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 deleteItemBtn.title = "Remover Item";
                 deleteItemBtn.onclick = () => removeItem(slice.id, idx);
 
+                const periodicityBtn = document.createElement('button');
+                periodicityBtn.className = 'icon-action-btn clock-item-btn';
+                periodicityBtn.innerHTML = '<span class="material-icons">more_time</span>';
+                periodicityBtn.title = "Configurar Repetição";
+                periodicityBtn.onclick = () => openPeriodicityModal(slice.id, idx);
+
                 const itemMobilePctFill = document.createElement('div');
                 itemMobilePctFill.className = 'mobile-progress-fill item-progress';
                 const itemBarColorMobile = lightenColor(slice.color, 85);
                 itemMobilePctFill.style.background = `linear-gradient(90deg, ${itemBarColorMobile} ${itemPerc}%, transparent ${itemPerc}%)`;
 
                 itemNameWrapper.appendChild(itemNameInput);
+                itemNameWrapper.appendChild(periodicityBtn);
                 itemNameWrapper.appendChild(deleteItemBtn);
                 itemNameCell.appendChild(itemMobilePctFill);
                 itemNameCell.appendChild(itemNameWrapper);
@@ -1085,7 +1565,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const currentVal = parseFloat(itemAmountInput.value) || 0;
                     const newVal = Math.max(0, currentVal + delta);
                     itemAmountInput.value = newVal.toFixed(2);
-                    const newPerc = (newVal / totalBudget) * 100;
+                    const newPerc = (newVal / getCurrentPeriodBudget()) * 100;
                     updateItem(slice.id, idx, null, newPerc);
                 };
 
@@ -1110,11 +1590,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 itemAmountInput.type = 'number';
                 itemAmountInput.className = 'slice-amount-input';
                 itemAmountInput.style.color = itemTextColor;
-                itemAmountInput.value = ((item.value / 100) * totalBudget).toFixed(2);
+                itemAmountInput.value = ((item.value / 100) * getCurrentPeriodBudget()).toFixed(2);
                 itemAmountInput.step = "0.01";
                 itemAmountInput.addEventListener('change', (e) => {
                     const newVal = parseFloat(e.target.value) || 0;
-                    const newPerc = (newVal / totalBudget) * 100;
+                    const newPerc = (newVal / getCurrentPeriodBudget()) * 100;
                     updateItem(slice.id, idx, null, newPerc);
                 });
 
@@ -1130,7 +1610,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         // Update Unallocated text
-        const currentTotalAllocatedPercentage = slices.reduce((sum, s) => sum + s.percentage, 0);
+        const currentTotalAllocatedPercentage = dataSlices.reduce((sum, s) => sum + s.percentage, 0);
         const unallocatedPercentageValue = 100 - currentTotalAllocatedPercentage;
 
         if (Math.abs(unallocatedPercentageValue) < 0.01) {
@@ -1140,7 +1620,7 @@ document.addEventListener('DOMContentLoaded', () => {
             unallocatedPercentageDiv.style.fontWeight = 'normal';
         } else if (unallocatedPercentageValue < 0) {
             // Budget exceeded
-            const exceededAmount = Math.abs(unallocatedPercentageValue / 100) * totalBudget;
+            const exceededAmount = Math.abs(unallocatedPercentageValue / 100) * getCurrentPeriodBudget();
             const exceededPerc = Math.abs(unallocatedPercentageValue).toFixed(2);
             unallocatedPercentageDiv.textContent = `⚠ Orçamento estourado! Excedido em R$ ${exceededAmount.toFixed(2)} (${exceededPerc}% acima do limite)`;
             unallocatedPercentageDiv.style.color = '#c0392b';
@@ -1148,7 +1628,7 @@ document.addEventListener('DOMContentLoaded', () => {
             unallocatedPercentageDiv.style.fontWeight = 'bold';
         } else {
             // Under budget
-            const unallocatedAmount = (unallocatedPercentageValue / 100) * totalBudget;
+            const unallocatedAmount = (unallocatedPercentageValue / 100) * getCurrentPeriodBudget();
             unallocatedPercentageDiv.textContent = `Restante: R$ ${unallocatedAmount.toFixed(2)} (${unallocatedPercentageValue.toFixed(2)}% disponível)`;
             unallocatedPercentageDiv.style.color = '#856404';
             unallocatedPercentageDiv.style.backgroundColor = 'rgba(192, 152, 83, 0.1)';
@@ -1181,9 +1661,85 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!new URLSearchParams(window.location.search).has('state')) {
         loadCurrentWorkingState();
     }
+
+    // --- V4 Time Navigation Logic ---
+    timeSegments.forEach(segment => {
+        segment.addEventListener('click', (e) => {
+            timeSegments.forEach(s => s.classList.remove('active'));
+            e.target.classList.add('active');
+            globalViewMode = e.target.dataset.mode;
+            console.log(`View Mode changed to: ${globalViewMode}`);
+            updateDateLabel();
+            totalBudgetInput.value = getCurrentPeriodBudget();
+            renderApp(); // Will eventually filter by date
+        });
+    });
+
+    if (pagePrevBtn) {
+        pagePrevBtn.addEventListener('click', () => {
+            shiftDate(-1);
+        });
+    }
+
+    if (pageNextBtn) {
+        pageNextBtn.addEventListener('click', () => {
+            shiftDate(1);
+        });
+    }
+
+    if (zoomOutBtn) {
+        zoomOutBtn.addEventListener('click', () => {
+            console.log("Zoom out triggered!");
+            mainContent.classList.remove('active-panel');
+            calendarView.style.display = 'block';
+            // small delay to allow display:block to apply before opacity transition
+            setTimeout(() => {
+                calendarView.classList.add('active-panel');
+                mainContent.style.display = 'none';
+            }, 10);
+
+            if (typeof renderCalendar === 'function') {
+                renderCalendar();
+            }
+        });
+    }
+
+    if (zoomInBtn) {
+        zoomInBtn.addEventListener('click', () => {
+            console.log("Zoom in triggered!");
+            calendarView.classList.remove('active-panel');
+            mainContent.style.display = 'block';
+            setTimeout(() => {
+                mainContent.classList.add('active-panel');
+                calendarView.style.display = 'none';
+            }, 10);
+        });
+    }
+
+    function shiftDate(direction) {
+        const newDate = new Date(currentDate);
+        if (globalViewMode === 'week') {
+            newDate.setDate(newDate.getDate() + (7 * direction));
+        } else if (globalViewMode === 'month') {
+            newDate.setMonth(newDate.getMonth() + (1 * direction));
+        } else if (globalViewMode === 'year') {
+            newDate.setFullYear(newDate.getFullYear() + (1 * direction));
+        }
+        currentDate = newDate;
+        console.log(`Date shifted by ${direction} ${globalViewMode}. New date: ${currentDate.toISOString()}`);
+        updateDateLabel();
+        totalBudgetInput.value = getCurrentPeriodBudget();
+        renderApp();
+    }
+
+    // Temporary date label update logic until UI is finalized
+    function updateDateLabel() {
+        const options = { year: 'numeric', month: 'long', day: 'numeric' };
+        console.log(`Current Period: ${currentDate.toLocaleDateString('pt-BR', options)} (${globalViewMode})`);
+    }
+
     renderApp();
     updateEmptyStateVisibility();
-
 
     window.addEventListener('resize', () => {
         if (myChart) {

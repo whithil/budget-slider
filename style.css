@@ -1475,6 +1475,71 @@ text {
     width: 80%;
 }
 
+/* Periodicity Modal specific */
+.periodicity-modal {
+    max-width: 400px;
+}
+
+.picker-container {
+    display: flex;
+    justify-content: center;
+    position: relative;
+    height: 150px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 20px 0;
+}
+
+.picker-highlight {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 100%;
+    height: 40px;
+    background: rgba(26, 115, 232, 0.1);
+    pointer-events: none;
+    border-top: 1px solid rgba(26, 115, 232, 0.2);
+    border-bottom: 1px solid rgba(26, 115, 232, 0.2);
+}
+
+.picker-column {
+    flex: 1;
+    overflow-y: auto;
+    scroll-snap-type: y mandatory;
+    scrollbar-width: none;
+    /* Firefox */
+    -ms-overflow-style: none;
+    /* IE/Edge */
+}
+
+.picker-column::-webkit-scrollbar {
+    display: none;
+    /* Chrome/Safari */
+}
+
+.picker-item {
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    scroll-snap-align: center;
+    font-size: 1.1rem;
+    color: #7f8c8d;
+    cursor: pointer;
+    transition: color 0.1s, font-weight 0.1s;
+}
+
+.picker-item.empty {
+    cursor: default;
+}
+
+.picker-item.selected {
+    color: #1a73e8;
+    font-weight: bold;
+    font-size: 1.25rem;
+}
+
 /* Sidebar Specific Footer & Cleanup */
 .sidebar-footer {
     padding: 20px 15px;
@@ -1557,21 +1622,33 @@ text {
 }
 
 .inline-delete-btn,
-.inline-delete-item-btn {
+.inline-delete-item-btn,
+.clock-item-btn {
     opacity: 0;
     transition: opacity 0.2s, transform 0.2s;
     padding: 4px !important;
 }
 
 tr:hover .inline-delete-btn,
-tr:hover .inline-delete-item-btn {
+tr:hover .inline-delete-item-btn,
+tr:hover .clock-item-btn {
     opacity: 0.6;
 }
 
 .inline-delete-btn:hover,
-.inline-delete-item-btn:hover {
+.inline-delete-item-btn:hover,
+.clock-item-btn:hover {
     opacity: 1 !important;
+}
+
+.inline-delete-btn:hover,
+.inline-delete-item-btn:hover {
     color: #e74c3c !important;
+}
+
+.clock-item-btn:hover {
+    color: #1a73e8 !important;
+    /* Blue for the clock icon */
 }
 
 /* The Overlapping Plus Button */
@@ -1607,6 +1684,116 @@ tr:hover .inline-delete-item-btn {
 
 .category-row td {
     border-bottom: 2px solid rgba(0, 0, 0, 0.1);
+}
+
+/* ============================================= */
+/* =====  V4 TIME NAVIGATION UI COMPONENTS ===== */
+/* ============================================= */
+
+/* Top Navigation for Time Mode */
+.top-time-nav {
+    position: sticky;
+    top: 0;
+    width: 100%;
+    background-color: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    z-index: 1000;
+    padding: 10px 0;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    display: flex;
+    justify-content: center;
+}
+
+.time-segments {
+    display: flex;
+    background-color: #f1f3f4;
+    border-radius: 8px;
+    padding: 4px;
+    gap: 4px;
+}
+
+.time-segment {
+    background: transparent;
+    border: none;
+    padding: 6px 16px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #5f6368;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.time-segment.active {
+    background-color: #ffffff;
+    color: #1a73e8;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Zoom Out Invite */
+.zoom-out-invite {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin: 10px auto 20px;
+    color: #bdc3c7;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: transparent;
+    border: none;
+    padding: 10px;
+    border-radius: 8px;
+    width: 60px;
+}
+
+.zoom-out-invite:hover {
+    color: #1a73e8;
+    background-color: rgba(26, 115, 232, 0.05);
+}
+
+.zoom-out-invite .material-icons {
+    font-size: 32px;
+    line-height: 0.8;
+}
+
+.zoom-out-invite .zoom-icon {
+    font-size: 20px;
+}
+
+/* Floating Pagination Chevrons */
+.pagination-chevron {
+    position: fixed;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: rgba(255, 255, 255, 0.8);
+    border: 1px solid #e0e0e0;
+    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 100;
+    color: #5f6368;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s;
+}
+
+.pagination-chevron:hover {
+    background-color: #ffffff;
+    color: #1a73e8;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transform: translateY(-50%) scale(1.1);
+}
+
+.pagination-chevron.left {
+    left: 20px;
+}
+
+.pagination-chevron.right {
+    right: 20px;
 }
 
 
@@ -1788,4 +1975,131 @@ tr:hover .inline-delete-item-btn {
         width: 8px !important;
         height: 8px !important;
     }
+}
+
+/* --- V4 View Panels (Slider vs Calendar) --- */
+.app-container {
+    position: relative;
+    overflow: hidden;
+}
+
+.view-panel {
+    display: none;
+    opacity: 0;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.view-panel.active-panel {
+    display: block;
+    opacity: 1;
+    transform: scale(1);
+    animation: fadeInScale 0.3s ease forwards;
+}
+
+@keyframes fadeInScale {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Calendar Specific Styles */
+#calendarView {
+    padding: 10px;
+}
+
+.calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.zoom-in-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background-color: var(--text-base);
+}
+
+.calendar-title-area {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.calendar-title-area h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: var(--text-base);
+}
+
+.calendar-budget-limit {
+    font-size: 0.9rem;
+    color: var(--text-light);
+    font-weight: 500;
+}
+
+.calendar-grid {
+    display: grid;
+    /* 7 columns for month/week */
+    grid-template-columns: repeat(7, 1fr);
+    gap: 5px;
+    background: #e0e0e0;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.calendar-day-header {
+    background: #f8f9fa;
+    text-align: center;
+    padding: 10px 5px;
+    font-weight: bold;
+    color: var(--text-light);
+    font-size: 0.85rem;
+    border-bottom: 1px solid #ddd;
+}
+
+.calendar-cell {
+    background: #fff;
+    min-height: 100px;
+    padding: 5px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.calendar-cell.has-date {
+    cursor: pointer;
+}
+
+.calendar-cell.empty {
+    background: #fafafa;
+}
+
+.calendar-date-number {
+    font-size: 0.85rem;
+    font-weight: bold;
+    color: var(--text-light);
+    margin-bottom: 5px;
+    align-self: flex-end;
+}
+
+.calendar-event {
+    font-size: 0.75rem;
+    padding: 3px 5px;
+    border-radius: 4px;
+    color: white;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }

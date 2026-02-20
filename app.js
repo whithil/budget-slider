@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const mainContent = document.getElementById('mainContent');
     const emptyState = document.getElementById('emptyState');
     const slicesTableBody = document.getElementById('slicesTableBody');
-    const addSliceButton = document.getElementById('addSliceButton');
+    // addSliceButton (removed - moved to header and empty state)
     const addSliceTableButton = document.getElementById('addSliceTableButton');
     const totalBudgetInput = document.getElementById('totalBudgetInput');
     const unallocatedPercentageDiv = document.getElementById('unallocatedPercentage');
@@ -204,7 +204,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // New FAB Listeners
     if (fabMain) {
         fabMain.addEventListener('click', () => {
-            fabContainer.classList.toggle('expanded');
+            const isSidebarOpen = sidebar.classList.contains('open');
+            if (isSidebarOpen) {
+                // If sidebar is open, clicking FAB hamburger closes both sidebar and menu
+                sidebar.classList.remove('open');
+                document.body.classList.remove('sidebar-open');
+                fabContainer.classList.remove('expanded');
+            } else {
+                // Normal toggle behavior if sidebar is closed
+                fabContainer.classList.toggle('expanded');
+            }
         });
     }
 
@@ -247,11 +256,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function toggleSidebar() {
-        const isOpen = sidebar.classList.contains('open');
-        sidebar.classList.toggle('open');
-        document.body.classList.toggle('sidebar-open');
-    }
 
 
 
@@ -1163,7 +1167,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const commonAddSliceAction = () => {
         addSlice('Nova Categoria', 10);
     };
-    addSliceButton.addEventListener('click', commonAddSliceAction);
+    // addSliceButton.addEventListener('click', commonAddSliceAction); (removed)
     addSliceTableButton.addEventListener('click', commonAddSliceAction);
     saveNewStateButton.addEventListener('click', handleSaveNewState);
 

@@ -125,13 +125,7 @@
 
         <!-- View Containers -->
         <div id="mainContent">
-            <div class="budget-controls">
-                <button id="addSliceButton">Adicionar Categoria</button>
-                <div class="total-budget-container">
-                    <label for="totalBudgetInput">Orçamento Total: R$</label>
-                    <input type="number" id="totalBudgetInput" value="1000" min="0">
-                </div>
-            </div>
+
 
             <div id="tableView" class="tab-content active">
                 <div class="slices-table-container">
@@ -171,6 +165,10 @@
                 <span class="material-icons">table_chart</span>
                 <span class="nav-label">Tabela</span>
             </button>
+            <div class="total-budget-container-bottom">
+                <span class="budget-input-symbol">R$</span>
+                <input type="number" id="totalBudgetInput" value="1000" min="0">
+            </div>
             <button class="nav-item" data-tab="chartView">
                 <span class="material-icons">pie_chart</span>
                 <span class="nav-label">Gráfico</span>

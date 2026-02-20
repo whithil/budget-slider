@@ -1,4 +1,12 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // 1. Touch Capability Detection
+    const updateTouchDeviceClass = () => {
+        const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (navigator.msMaxTouchPoints > 0);
+        document.body.classList.toggle('is-touch-device', isTouch);
+        document.body.classList.toggle('is-no-touch', !isTouch);
+    };
+    updateTouchDeviceClass();
+
     // DOM Elements
     const chartContainer = document.getElementById('chart');
     const mainContent = document.getElementById('mainContent');
@@ -633,9 +641,11 @@ document.addEventListener('DOMContentLoaded', () => {
         BUDGET_SAMPLES.forEach((sample) => {
             const card = document.createElement('div');
             card.className = 'sample-card';
+            // Strip redundancy like "(R$ 300)" from the title
+            const cleanName = sample.name.replace(/\s*\(R\$\s*\d+\)\s*/i, '');
             card.innerHTML = `
                 <div class="postit-pin"></div>
-                <h3>${sample.name}</h3>
+                <h3>${cleanName}</h3>
                 <div class="sample-price">
                     <span>R$ ${sample.total.toFixed(0)}</span>
                 </div>
@@ -960,16 +970,21 @@ document.addEventListener('DOMContentLoaded', () => {
             addItemBtn.title = "Adicionar Item";
             addItemBtn.onclick = () => addItem(slice.id);
 
-            const mobilePctBadge = document.createElement('span');
-            mobilePctBadge.className = 'mobile-percentage-badge';
-            mobilePctBadge.textContent = `${catPercentage.toFixed(2)}%`;
-            const catBarColorMobile = lightenColor(slice.color, 70);
-            mobilePctBadge.style.background = `linear-gradient(90deg, ${catBarColorMobile} ${catPercentage}%, transparent ${catPercentage}%)`;
+            const mobilePctFill = document.createElement('div');
+            mobilePctFill.className = 'mobile-progress-fill';
+            const catBarColorMobile = lightenColor(slice.color, 75);
+            mobilePctFill.style.background = `linear-gradient(90deg, ${catBarColorMobile} ${catPercentage}%, transparent ${catPercentage}%)`;
 
             nameWrapper.appendChild(nameInput);
             nameWrapper.appendChild(deleteBtn);
+            nameCell.appendChild(mobilePctFill);
             nameCell.appendChild(nameWrapper);
-            nameCell.appendChild(mobilePctBadge);
+
+            const mobilePctText = document.createElement('span');
+            mobilePctText.className = 'mobile-percentage-text';
+            mobilePctText.textContent = `${catPercentage.toFixed(2)}%`;
+            nameCell.appendChild(mobilePctText);
+
             nameCell.appendChild(addItemBtn);
 
             // Percentage (Derived) with Progress Bar
@@ -1002,14 +1017,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 const itemTextColor = getContrastForm(itemRowBaseColor);
                 itemRow.style.color = itemTextColor;
 
-                itemRow.insertCell(); // Empty color col
+                const itemColorCell = itemRow.insertCell(); // Empty color col
+                itemColorCell.className = 'color-col';
 
                 // Item Name with Inline Delete
                 const itemNameCell = itemRow.insertCell();
                 itemNameCell.className = 'name-col-contextual';
 
-                const nameWrapper = document.createElement('div');
-                nameWrapper.className = 'name-input-wrapper';
+                const itemNameWrapper = document.createElement('div');
+                itemNameWrapper.className = 'name-input-wrapper';
 
                 const itemNameInput = document.createElement('input');
                 itemNameInput.type = 'text';
@@ -1024,19 +1040,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 deleteItemBtn.title = "Remover Item";
                 deleteItemBtn.onclick = () => removeItem(slice.id, idx);
 
-                const itemMobilePctBadge = document.createElement('span');
-                itemMobilePctBadge.className = 'mobile-percentage-badge';
-                itemMobilePctBadge.textContent = `${itemPerc.toFixed(2)}%`;
-                const childBarColorMobile = lightenColor(slice.color, 80);
-                const parentShadeColorMobile = lightenColor(slice.color, 90);
-                const catPercVal = slice.percentage || 0;
-                const childGlobalPercMobile = (itemPerc / 100) * catPercVal;
-                itemMobilePctBadge.style.background = `linear-gradient(90deg, ${childBarColorMobile} ${childGlobalPercMobile.toFixed(2)}%, ${parentShadeColorMobile} ${childGlobalPercMobile.toFixed(2)}% ${catPercVal.toFixed(2)}%, transparent ${catPercVal.toFixed(2)}%)`;
+                const itemMobilePctFill = document.createElement('div');
+                itemMobilePctFill.className = 'mobile-progress-fill item-progress';
+                const itemBarColorMobile = lightenColor(slice.color, 85);
+                itemMobilePctFill.style.background = `linear-gradient(90deg, ${itemBarColorMobile} ${itemPerc}%, transparent ${itemPerc}%)`;
 
-                nameWrapper.appendChild(itemNameInput);
-                nameWrapper.appendChild(deleteItemBtn);
-                itemNameCell.appendChild(nameWrapper);
-                itemNameCell.appendChild(itemMobilePctBadge);
+                itemNameWrapper.appendChild(itemNameInput);
+                itemNameWrapper.appendChild(deleteItemBtn);
+                itemNameCell.appendChild(itemMobilePctFill);
+                itemNameCell.appendChild(itemNameWrapper);
+
+                const itemMobilePctText = document.createElement('span');
+                itemMobilePctText.className = 'mobile-percentage-text';
+                itemMobilePctText.textContent = `${itemPerc.toFixed(2)}%`;
+                itemNameCell.appendChild(itemMobilePctText);
 
                 // Item Percentage with Nested Progress Bar
                 const itemPercentageCell = itemRow.insertCell();
